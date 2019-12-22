@@ -49,4 +49,5 @@ message("Binary tree path: ${PROJECT_BINARY_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/libs/glm/include"
         "${PROJECT_SOURCE_DIR}/libs/gli/include"
 )
+add_subdirectory(src/libs/OGLAppFramework)
 add_subdirectory(src/dv_project_3D)

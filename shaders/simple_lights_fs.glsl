@@ -40,13 +40,11 @@ void main()
     //obliczenia zwiazane z oswietleniem...
 	vec3 norm = normalize(normal_ws);
 
+	vec3 light_length = point_light.position_ws - position_ws;
+	float intens = clamp((point_light.r - length(light_length))/point_light.r, 0.f, 1.f);
+	intens = intens * intens;
+
 	diffuse += ambient_light.ambient_color; 
-
-	vec3 intens = 1 - point_light.position_ws/point_light.r; // (1-t/r)^2
-	//float theta     = dot(lightDir, normalize(-light.direction));
-	//float epsilon   = light.cutOff - light.outerCutOff;
-	//float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);  
-
 	vec3 lightDir = normalize(point_light.position_ws - position_ws);  
 	float diff = max(dot(norm, lightDir), 0.0);
 	diffuse += diff * point_light.color * intens;

@@ -119,11 +119,11 @@ bool SampleApp::init(void) {
 
     std::cout << "Shaders compilation..." << std::endl;
     // wczytanie z plikow i skompilowanie shaderow oraz utworzenie programu (VS + FS)
-    std::string vs_path = "../../../programowaniegrafiki3d/shaders/simple_3D_vs.glsl";
-    std::string fs_path = "../../../programowaniegrafiki3d/shaders/simple_3D_fs.glsl";
+    std::string vs_path = "../../../dv_project/shaders/simple_lights_vs.glsl";
+    std::string fs_path = "../../../dv_project/shaders/simple_lights_fs.glsl";
 #if WIN32
-	vs_path = "C:/Users/Mark/Desktop/lights/programowaniegrafiki3d/shaders/simple_lights_vs.glsl";
-	fs_path = "C:/Users/Mark/Desktop/lights/programowaniegrafiki3d/shaders/simple_lights_fs.glsl";
+	vs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_lights_vs.glsl";
+	fs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_lights_fs.glsl";
 #endif
     if (auto create_program_result = OGLAppFramework::createProgram(vs_path, fs_path)) {
         simple_program = create_program_result.value();
@@ -131,8 +131,10 @@ bool SampleApp::init(void) {
         std::cerr << "Error - can't create program..." << std::endl;
         return false;
     }
-
-	std::string texture_p = "C:/Users/Mark/Desktop/lights/programowaniegrafiki3d/data/text.dds";
+	std::string texture_p = "../../../dv_project/data/text.dds";
+#if WIN32
+	texture_p = "C:/Users/Mark/Desktop/dv_project/data/text.dds";
+#endif
 	if (auto load_t_r = OGLAppFramework::loadTexFromFileAndCreateTO(texture_p)) {
 		tex_handle = load_t_r.value();
 	} else {
@@ -283,7 +285,7 @@ bool SampleApp::init(void) {
 	PointLight pointLight = PointLight();
 
 	pointLight.position_ws = glm::vec3(5.5f, 2.5f, 0.5f);
-	pointLight.r = 0.5;
+	pointLight.r = 33.5;
 	pointLight.color = glm::vec3(1.f, 0.f, 0.f);
 	// alokacja pamieci dla bufora zbindowanego jako UBO i skopiowanie danych
 	gl::glBufferData(gl::GL_UNIFORM_BUFFER, sizeof(pointLight), &pointLight, gl::GL_DYNAMIC_DRAW);
