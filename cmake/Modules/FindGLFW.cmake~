@@ -1,0 +1,29 @@
+set(GLFW_FOUND "NO")
+set(GLFW_INCLUDE_DIRS "NOTFOUND")
+set(GLFW_LIBRARIES "NOTFOUND")
+
+if(WIN32 AND NOT UNIX)
+	set(GLFW_LIBRARIES_OPT optimized "${OGLSamples_SOURCE_DIR}/../Libs/glfw/lib/Win/x64/GLFW3.lib")
+	set(GLFW_LIBRARIES_DEBUG debug "${OGLSamples_SOURCE_DIR}/../Libs/glfw/lib/Win/x64/GLFW3.lib")
+
+	set(GLFW_INCLUDE_DIRS "${OGLSamples_SOURCE_DIR}/../Libs/glfw/include")
+
+	set(GLFW_FOUND "YES")
+else()
+    if(NOT APPLE)
+        set(GLFW_LIBRARIES_OPT optimized "${OGLSamples_SOURCE_DIR}/../Libs/glfw/lib/Linux/linux64/wayland/libglfw3.a")
+        set(GLFW_LIBRARIES_DEBUG debug "${OGLSamples_SOURCE_DIR}/../Libs/glfw/lib/Linux/linux64/wayland/libglfw3.a")
+
+        set(GLFW_INCLUDE_DIRS "${OGLSamples_SOURCE_DIR}/../Libs/glfw/include")
+
+        set(GLFW_FOUND "YES")
+    else()
+        message("There is no version for Apple!")
+    endif()
+endif()
+
+set(GLFW_LIBRARIES ${GLFW_LIBRARIES_OPT} ${GLFW_LIBRARIES_DEBUG})
+
+message("GLFW found: ${GLFW_FOUND}")
+message("GLFW include dir: ${GLFW_INCLUDE_DIRS}")
+message("GLFW libraries: ${GLFW_LIBRARIES}")
