@@ -1,8 +1,11 @@
 # dv_project
 
 Na projekt składa się opis projektu oraz aplikacja renderujące scenę 3D stworzona w C++ i OpenGL (GLSL), używając frameworka przedstawionego na zajęciach (z ewentualnymi modyfikacjami). Aplikacja powinna zostać napisana obiektowo z możliwe zminimalizowaną (najlepiej do 0) redundancją kodu.
+
 Osoby chcące oddawać projekt powinny wcześniej zadeklarować jak będzie wyglądał, konsultując z prowadzącym i wysyłając opis (najpóźniej do 16.01.2019) na mail: dydaktykafais@outlook.com
+
 Scena 3D powinna zawierać (minimalne wymagania):
+
 – co najmniej 4 różne obiekty 3D
 – co najmniej 2 dynamiczne światła
 – co najmniej 2 rodzaje świateł – otoczenia (ambient) i punktowe (point light) – oświetlenie powinno być zaimplementowane przy użyciu modelu Blinna-Phonga
