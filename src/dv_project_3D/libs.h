@@ -10,3 +10,4 @@
 #include <string>
 #include <array>
 #include <vector>
+#include "camera.h"

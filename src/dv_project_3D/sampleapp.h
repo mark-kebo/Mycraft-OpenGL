@@ -25,6 +25,7 @@ class SampleApp : public OGLAppFramework::OGLApplication
 public:
     SampleApp();
     virtual ~SampleApp() override;
+	void bindObject();
 	template <typename T>
 	void sendData(T object, gl::GLuint handle);
     // metoda wywolywana podczas zmiany rozmiaru okna
