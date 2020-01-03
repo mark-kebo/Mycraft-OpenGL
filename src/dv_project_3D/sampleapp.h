@@ -17,15 +17,31 @@ class SampleApp : public OGLAppFramework::OGLApplication
 	gl::GLuint ubo_camera_position;
 	gl::GLuint ubo_material;
 
+	gl::GLuint tex_handle_sky;
+	gl::GLuint vao_handle_sky;
+	gl::GLuint simple_program_sky;
+	gl::GLuint vbo_handle_sky;
+	gl::GLuint index_buffer_handle_sky;
+	gl::GLuint ubo_mvp_matrix_handle_sky;
+	gl::GLuint ubo_intensity_handle_sky;
+	gl::GLuint ubo_ambient_light_sky;
+	gl::GLuint ubo_point_light_sky;
+	gl::GLuint ubo_camera_position_sky;
+	gl::GLuint ubo_material_sky;
+
 	glm::mat4x4 projection_matrix;
-	glm::vec3 camera_position;
-	glm::vec3 camera_front;
-	glm::vec3 camera_up;
 
 public:
     SampleApp();
     virtual ~SampleApp() override;
+
 	void bindObject();
+
+	void bindSkybox();
+	void drawSkybox();
+
+	unsigned int loadCubemap(std::string faces[]);
+
 	template <typename T>
 	void sendData(T object, gl::GLuint handle);
     // metoda wywolywana podczas zmiany rozmiaru okna

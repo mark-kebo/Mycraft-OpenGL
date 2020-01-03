@@ -94,7 +94,7 @@ bool SampleApp::init(void) {
     gl::glClearColor(0.f, 0.f, 0.2f, 1.f);
 
     // wlaczmy renderowanie tylko jednej strony poligon-ow
-    //gl::glEnable(gl::GL_CULL_FACE);
+    gl::glEnable(gl::GL_CULL_FACE);
     // ustalamy, ktora strona jest "przodem"
     gl::glFrontFace(gl::GL_CCW);
     // ustalamy, ktorej strony nie bedziemy renderowac
@@ -145,21 +145,21 @@ bool SampleApp::frame(float delta_time) {
 	//1 piramide send
 	std::array<glm::mat4x4, 2u> matrices_1 = { mvp_matrix_1, model_matrix_1 };
 	sendData(matrices_1, ubo_mvp_matrix_handle);
-	sendData(camera_position, ubo_camera_position);
+	sendData(camera.Position, ubo_camera_position);
 	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
 	gl::glDrawElements(gl::GL_TRIANGLES, 18, gl::GL_UNSIGNED_SHORT, nullptr);
 	
 	//2 piramide send
 	std::array<glm::mat4x4, 2u> matrices_2 = { mvp_matrix_2, model_matrix_2 };
 	sendData(matrices_2, ubo_mvp_matrix_handle);
-	sendData(camera_position, ubo_camera_position);
+	sendData(camera.Position, ubo_camera_position);
 	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
 	gl::glDrawElements(gl::GL_TRIANGLES, 18, gl::GL_UNSIGNED_SHORT, nullptr);
 	
 	//3 piramide send
 	std::array<glm::mat4x4, 2u> matrices_3 = { mvp_matrix_3, model_matrix_3 };
 	sendData(matrices_3, ubo_mvp_matrix_handle);
-	sendData(camera_position, ubo_camera_position);
+	sendData(camera.Position, ubo_camera_position);
 	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
 	gl::glDrawElements(gl::GL_TRIANGLES, 18, gl::GL_UNSIGNED_SHORT, nullptr);
 
@@ -316,7 +316,7 @@ void SampleApp::bindObject() {
 	PointLight pointLight = PointLight();
 	pointLight.position_ws = glm::vec3(5.5f, 2.5f, 0.5f);
 	pointLight.r = 33.5;
-	pointLight.color = glm::vec3(1.f, 0.f, 0.f);
+	pointLight.color = glm::vec3(1.f, 1.f, 1.f);
 	// alokacja pamieci dla bufora zbindowanego jako UBO i skopiowanie danych
 	gl::glBufferData(gl::GL_UNIFORM_BUFFER, sizeof(pointLight), &pointLight, gl::GL_DYNAMIC_DRAW);
 	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
@@ -351,6 +351,43 @@ void SampleApp::bindObject() {
 	// przyporzadkowanie UBO do indeksu bindowania unform block-u
 	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_material_binding_index, ubo_material);
 
+}
+
+void SampleApp::bindSkybox() {
+
+}
+
+unsigned int SampleApp::loadCubemap(std::string faces[])
+{
+	unsigned int textureID;
+	//gl::glCreateTextures(gl::GL_TEXTURE_CUBE_MAP, 1, &textureID);
+	gl::glGenTextures(1, &textureID);
+	gl::glBindTexture(gl::GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrChannels;
+	for (unsigned int i = 0; i < 6; i++)
+	{
+		unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			gl::glTexImage2D(gl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl::GL_RGB,
+				width, height, 0, gl::GL_RGB, gl::GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+		}
+		else
+		{
+			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
+
+	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR);
+	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR);
+	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_WRAP_S, gl::GL_CLAMP_TO_EDGE);
+	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_WRAP_T, gl::GL_CLAMP_TO_EDGE);
+	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_WRAP_R, gl::GL_CLAMP_TO_EDGE);
+
+	return textureID;
 }
 
 template <typename T>
