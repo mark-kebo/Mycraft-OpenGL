@@ -9,7 +9,7 @@ const unsigned int SCR_WIDTH = 1366;
 const unsigned int SCR_HEIGHT = 768;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 3.0f, 3.0f));
 float lastX = (float)SCR_WIDTH / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
@@ -36,10 +36,11 @@ struct PointLight {
 };
 
 SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, "Game - 3D", 4u, 2u),
-simple_program(0u), vbo_handle(0u), index_buffer_handle(0u), 
+simple_program(0u), vbo_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u),
 vao_handle(0u), ubo_mvp_matrix_handle(0u), ubo_intensity_handle(0u), tex_handle(0u),
-tex_so(0u), ubo_ambient_light(0u),
-ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u) {
+tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u), simple_program_sky(0u), index_buffer_handle_sky(0u),
+ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u),
+ubo_projection_sky(0u), ubo_view_sky(0u){
 }
 
 SampleApp::~SampleApp() {
@@ -91,7 +92,7 @@ bool SampleApp::init(void) {
 	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
     // ustalamy domyślny kolor ekranu
-    gl::glClearColor(0.f, 0.f, 0.2f, 1.f);
+	gl::glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
     // wlaczmy renderowanie tylko jednej strony poligon-ow
     gl::glEnable(gl::GL_CULL_FACE);
@@ -101,7 +102,8 @@ bool SampleApp::init(void) {
     gl::glCullFace(gl::GL_BACK);
 	gl::glEnable(gl::GL_DEPTH_TEST);
 
-	bindObject();
+	//bindObject();
+	bindSkybox();
 
 	// Tworzenie SO
 	gl::glGenSamplers(1, &tex_so);
@@ -109,13 +111,10 @@ bool SampleApp::init(void) {
 	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_WRAP_S, gl::GL_REPEAT);
 	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_WRAP_T, gl::GL_REPEAT);
 	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_WRAP_R, gl::GL_REPEAT);
-	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR_MIPMAP_LINEAR);
+	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR);
 	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR);
 	gl::glBindSampler(0u, tex_so);
-	// uaktywnienie pierwszego slotu tekstur
-	gl::glActiveTexture(gl::GL_TEXTURE0);
-	// zbindowanie tekstury do aktywnego slotu
-	gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
+
 	return true;
 }
 
@@ -123,45 +122,62 @@ bool SampleApp::frame(float delta_time) {
 	static float angle = 0.f;
 	angle += delta_time * 1.5;
 	deltaTime = delta_time * 2;
-
-	//1 piramide mvp
-	glm::mat4x4 model_matrix_1 = translationMatrix(model_positions[0]) * 
-									rotationMatrix(angle, model_positions[0]);
-	glm::mat4x4 mvp_matrix_1 = projection_matrix * camera.GetViewMatrix() * model_matrix_1;
-	//2 piramide mvp
-	glm::mat4x4 model_matrix_2 = rotationMatrix(angle, model_positions[0]) * 
-									translationMatrix(model_positions[1]);
-	glm::mat4x4 mvp_matrix_2 = projection_matrix * camera.GetViewMatrix() * model_matrix_2;
-	//3 piramide mvp
-	glm::mat4x4 model_matrix_3 = rotationMatrix(angle, model_positions[0]) *
-									translationMatrix(glm::vec3(model_positions[1].x, 0.0f, model_positions[1].z)) *
-									rotationMatrix(angle, model_positions[0]) *
-									translationMatrix(model_positions[2]);
-	glm::mat4x4 mvp_matrix_3 = projection_matrix * camera.GetViewMatrix() * model_matrix_3;
-
-	// zbindowanie VAO modelu, ktorego bedziemy renderowac
-	gl::glBindVertexArray(vao_handle);
-
-	//1 piramide send
-	std::array<glm::mat4x4, 2u> matrices_1 = { mvp_matrix_1, model_matrix_1 };
-	sendData(matrices_1, ubo_mvp_matrix_handle);
-	sendData(camera.Position, ubo_camera_position);
-	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-	gl::glDrawElements(gl::GL_TRIANGLES, 18, gl::GL_UNSIGNED_SHORT, nullptr);
 	
-	//2 piramide send
-	std::array<glm::mat4x4, 2u> matrices_2 = { mvp_matrix_2, model_matrix_2 };
-	sendData(matrices_2, ubo_mvp_matrix_handle);
-	sendData(camera.Position, ubo_camera_position);
-	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-	gl::glDrawElements(gl::GL_TRIANGLES, 18, gl::GL_UNSIGNED_SHORT, nullptr);
-	
-	//3 piramide send
-	std::array<glm::mat4x4, 2u> matrices_3 = { mvp_matrix_3, model_matrix_3 };
-	sendData(matrices_3, ubo_mvp_matrix_handle);
-	sendData(camera.Position, ubo_camera_position);
-	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-	gl::glDrawElements(gl::GL_TRIANGLES, 18, gl::GL_UNSIGNED_SHORT, nullptr);
+	gl::glClear(gl::GL_COLOR_BUFFER_BIT | gl::GL_DEPTH_BUFFER_BIT);
+	/*
+	//objects
+	{
+		// ustawienie programu, ktory bedzie uzywany podczas rysowania
+		gl::glUseProgram(simple_program);
+
+		//1 piramide mvp
+		glm::mat4x4 model_matrix_1 = translationMatrix(model_positions[0]) *
+			rotationMatrix(angle, model_positions[0]);
+		glm::mat4x4 mvp_matrix_1 = projection_matrix * camera.GetViewMatrix() * model_matrix_1;
+		//2 piramide mvp
+		glm::mat4x4 model_matrix_2 = rotationMatrix(angle, model_positions[0]) *
+			translationMatrix(model_positions[1]);
+		glm::mat4x4 mvp_matrix_2 = projection_matrix * camera.GetViewMatrix() * model_matrix_2;
+		//3 piramide mvp
+		glm::mat4x4 model_matrix_3 = rotationMatrix(angle, model_positions[0]) *
+			translationMatrix(glm::vec3(model_positions[1].x, 0.0f, model_positions[1].z)) *
+			rotationMatrix(angle, model_positions[0]) *
+			translationMatrix(model_positions[2]);
+		glm::mat4x4 mvp_matrix_3 = projection_matrix * camera.GetViewMatrix() * model_matrix_3;
+
+		// zbindowanie VAO modelu, ktorego bedziemy renderowac
+		gl::glBindVertexArray(vao_handle);
+
+		// uaktywnienie pierwszego slotu tekstur
+		gl::glActiveTexture(gl::GL_TEXTURE0);
+		// zbindowanie tekstury do aktywnego slotu
+		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
+		//1 piramide send
+		std::array<glm::mat4x4, 2u> matrices_1 = { mvp_matrix_1, model_matrix_1 };
+		sendData(matrices_1, ubo_mvp_matrix_handle);
+		sendData(camera.Position, ubo_camera_position);
+		// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
+		gl::glDrawArrays(gl::GL_TRIANGLES, 0, 18);
+
+		//2 piramide send
+		std::array<glm::mat4x4, 2u> matrices_2 = { mvp_matrix_2, model_matrix_2 };
+		sendData(matrices_2, ubo_mvp_matrix_handle);
+		sendData(camera.Position, ubo_camera_position);
+		// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
+		gl::glDrawArrays(gl::GL_TRIANGLES, 0, 18);
+
+		//3 piramide send
+		std::array<glm::mat4x4, 2u> matrices_3 = { mvp_matrix_3, model_matrix_3 };
+		sendData(matrices_3, ubo_mvp_matrix_handle);
+		sendData(camera.Position, ubo_camera_position);
+		// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
+		gl::glDrawArrays(gl::GL_TRIANGLES, 0, 18);
+
+		gl::glBindVertexArray(0);
+	}
+	*/
+	//skybox
+	drawSkybox();
 
 	return true;
 }
@@ -354,7 +370,164 @@ void SampleApp::bindObject() {
 }
 
 void SampleApp::bindSkybox() {
+	std::cout << "Shaders skybox compilation..." << std::endl;
+	// wczytanie z plikow i skompilowanie shaderow oraz utworzenie programu (VS + FS)
+	std::string vs_path = "../../../dv_project/shaders/simple_skybox_vs.glsl";
+	std::string fs_path = "../../../dv_project/shaders/simple_skybox_fs.glsl";
+#if WIN32
+	vs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_skybox_vs.glsl";
+	fs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_skybox_fs.glsl";
+#endif
+	if (auto create_program_result = OGLAppFramework::createProgram(vs_path, fs_path)) {
+		simple_program_sky = create_program_result.value();
+	}
+	else {
+		std::cerr << "Error - can't create program..." << std::endl;
+		return;
+	}
 
+	float skyboxVertices[] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+
+	std::array<gl::GLushort, 36u> indices = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+	18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35};
+
+	std::cout << "Generating skybox buffers..." << std::endl;
+	// stworzenie bufora
+	gl::glGenBuffers(1, &vbo_handle_sky);
+	// zbindowanie bufora jako VBO
+	gl::glBindBuffer(gl::GL_ARRAY_BUFFER, vbo_handle_sky);
+	// alokacja pamieci dla bufora zbindowanego jako VBO i skopiowanie danych z tablicy "vertices"
+	gl::glBufferData(gl::GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, gl::GL_STATIC_DRAW);
+	// odbindowanie buffora zbindowanego jako VBO (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
+
+	// stworzenie bufora
+	gl::glGenBuffers(1, &index_buffer_handle_sky);
+	// zbindowanie bufora jako IB
+	gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, index_buffer_handle_sky);
+	// alokacja pamieci dla bufora zbindowanego jako IB i skopiowanie danych z tablicy "indeices"
+	gl::glBufferData(gl::GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(gl::GLushort), indices.data(), gl::GL_STATIC_DRAW);
+	// odbindowanie buffora zbindowanego jako IB (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	// stworzenie VAO
+	gl::glGenVertexArrays(1, &vao_handle_sky);
+	// zbindowanie VAO
+	gl::glBindVertexArray(vao_handle_sky);
+
+	// zbindowanie VBO do aktualnego VAO
+	gl::glBindBuffer(gl::GL_ARRAY_BUFFER, vbo_handle_sky);
+	// ustalenie jak maja byc interpretowane dane o pozycji z VBO
+	gl::glVertexAttribPointer(0u, 3, gl::GL_FLOAT, gl::GL_FALSE, sizeof(float) * 3, nullptr);
+	// odblokowanie mozliwosci wczytywania danych o pozycji z danej lokalizacji
+	gl::glEnableVertexAttribArray(0u);
+	// zbindowanie IB do aktualnego VAO
+	gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, index_buffer_handle);
+	// odbindowanie VAO (ma ono teraz informacje m.in. o VBO + IB, wiec gdy zajdzie potrzeba uzycia VBO + IB, wystarczy zbindowac VAO)
+	gl::glBindVertexArray(0u);
+	// odbindowanie buffora zbindowanego jako VBO (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
+	// odbindowanie buffora zbindowanego jako bufor indeksow (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	// load textures
+	// -------------
+	std::string faces[6] = {
+		"../../../dv_project/data/skybox/stormydays_bk.tga",
+		"../../../dv_project/data/skybox/stormydays_dn.tga",
+		"../../../dv_project/data/skybox/stormydays_ft.tga",
+		"../../../dv_project/data/skybox/stormydays_lf.tga",
+		"../../../dv_project/data/skybox/stormydays_rt.tga",
+		"../../../dv_project/data/skybox/stormydays_up.tga"
+	};
+#if WIN32
+	faces[0] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_ft.tga";
+	faces[1] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_bk.tga";
+	faces[2] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_up.tga";
+	faces[3] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_dn.tga";
+	faces[4] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_rt.tga";
+	faces[5] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_lf.tga";
+#endif
+	tex_handle_sky = loadCubemap(faces);
+
+	const gl::GLuint ub_projection_index = 1u;
+	const gl::GLuint ub_view_index = 2u;
+
+	// ustawienie programu, ktory bedzie uzywany podczas rysowania
+	gl::glUseProgram(simple_program_sky);
+
+	// stworzenie bufora
+	gl::glGenBuffers(1, &ubo_projection_sky);
+	// zbindowanie bufora jako UBO
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_projection_sky);
+	// stworzenie bufora
+	gl::glGenBuffers(1, &ubo_view_sky);
+	// zbindowanie bufora jako UBO
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_view_sky);
+
+	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_projection_index, ubo_projection_sky);
+	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_view_index, ubo_view_sky);
+}
+
+void SampleApp::drawSkybox() {
+	// ustawienie programu, ktory bedzie uzywany podczas rysowania
+	gl::glUseProgram(simple_program_sky);
+	glm::mat4x4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+	// draw skybox as last
+	gl::glDepthFunc(gl::GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+	glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+	sendData(view, ubo_view_sky);
+	sendData(projection, ubo_projection_sky);
+	// skybox cube
+	gl::glBindVertexArray(vao_handle_sky);
+	gl::glActiveTexture(gl::GL_TEXTURE0);
+	gl::glBindTexture(gl::GL_TEXTURE_CUBE_MAP, tex_handle_sky);
+	gl::glDrawArrays(gl::GL_TRIANGLES, 0, 36);
+	gl::glBindVertexArray(0);
+	gl::glDepthFunc(gl::GL_LESS); // set depth function back to default
 }
 
 unsigned int SampleApp::loadCubemap(std::string faces[])
@@ -408,6 +581,48 @@ void SampleApp::sendData(T object, gl::GLuint handle) {
 }
 
 void SampleApp::release(void) {
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	if (index_buffer_handle_sky)
+	{
+		// usuniecie UBO
+		gl::glDeleteBuffers(1, &index_buffer_handle_sky);
+		index_buffer_handle_sky = 0u;
+	}
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	if (tex_handle_sky)
+	{
+		// usuniecie UBO
+		gl::glDeleteBuffers(1, &tex_handle_sky);
+		tex_handle_sky = 0u;
+	}
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	if (vao_handle_sky)
+	{
+		// usuniecie UBO
+		gl::glDeleteBuffers(1, &vao_handle_sky);
+		vao_handle_sky = 0u;
+	}
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	if (vbo_handle_sky)
+	{
+		// usuniecie UBO
+		gl::glDeleteBuffers(1, &vbo_handle_sky);
+		vbo_handle_sky = 0u;
+	}
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	if (ubo_projection_sky)
+	{
+		// usuniecie UBO
+		gl::glDeleteBuffers(1, &ubo_projection_sky);
+		ubo_projection_sky = 0u;
+	}
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	if (ubo_view_sky)
+	{
+		// usuniecie UBO
+		gl::glDeleteBuffers(1, &ubo_view_sky);
+		ubo_view_sky = 0u;
+	}
 	// odbindowanie UBO
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
 	if (ubo_ambient_light)
@@ -458,4 +673,6 @@ void SampleApp::release(void) {
 
     // usuniecie programu
     gl::glDeleteProgram(simple_program);
+	// usuniecie programu
+	gl::glDeleteProgram(simple_program_sky);
 }
