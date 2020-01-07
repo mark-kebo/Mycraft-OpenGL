@@ -51,7 +51,7 @@ void main()
 
 	vec3 viewDir = normalize(additional_data.camera_position_ws - position_ws);
 	vec3 reflectDir = reflect(-lightDir, norm); 
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 64);
 	specular +=  spec * point_light.color * intens; 
 
     vec3 result_color = clamp(diffuse * material.color * texture(color_tex, tex_uv).rgb + specular, 0.f, 1.f);

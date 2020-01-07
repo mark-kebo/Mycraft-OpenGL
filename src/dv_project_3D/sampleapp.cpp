@@ -1,6 +1,7 @@
 #include "sampleapp.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include <time.h>
 
 using namespace OGLAppFramework;
 
@@ -9,13 +10,20 @@ const unsigned int SCR_WIDTH = 1366;
 const unsigned int SCR_HEIGHT = 768;
 
 // camera
-Camera camera(glm::vec3(0.0f, 3.0f, 3.0f));
+Camera camera(glm::vec3(10.0f, 3.0f, 10.0f));
 float lastX = (float)SCR_WIDTH / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
 
 // timing
 float deltaTime = 0.0f;
+
+//shaders
+Shader shader = Shader();
+Shader shader_sky = Shader();
+
+//scene
+bool mass[1000][1000][1000];
 
 const glm::vec3 model_positions[3] = {
 	glm::vec3(0.0f,  1.0f,  0.0f),
@@ -36,9 +44,9 @@ struct PointLight {
 };
 
 SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, "Game - 3D", 4u, 2u),
-simple_program(0u), vbo_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u),
+vbo_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u),
 vao_handle(0u), ubo_mvp_matrix_handle(0u), ubo_intensity_handle(0u), tex_handle(0u),
-tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u), simple_program_sky(0u), index_buffer_handle_sky(0u),
+tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u),index_buffer_handle_sky(0u),
 ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u),
 ubo_projection_sky(0u), ubo_view_sky(0u){
 }
@@ -83,7 +91,7 @@ void SampleApp::cursorPosCallback(double xpos, double ypos) {
 }
 
 void SampleApp::mouseButtonCallback(int button, int action, int mods) {
-    //std::cout << "Mouse button pressed" << std::endl;
+    std::cout << "Mouse button pressed" << std::endl;
 }
 
 bool SampleApp::init(void) {
@@ -102,15 +110,21 @@ bool SampleApp::init(void) {
     gl::glCullFace(gl::GL_BACK);
 	gl::glEnable(gl::GL_DEPTH_TEST);
 
-	//bindObject();
-	bindSkybox();
+	srand(time(0));
+	for (int x = 0; x < 20; x++)
+		for (int y = 0; y < 20; y++)
+			for (int z = 0; z < 20; z++) {
+				if ((y == 0) || rand() % 100 == 1) mass[x][y][z] = true;
+			}
 
+	bindObject();
+	//bindSkybox();
+	
 	// Tworzenie SO
 	gl::glGenSamplers(1, &tex_so);
 	// Ustawienie parametrów samplowania
-	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_WRAP_S, gl::GL_REPEAT);
-	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_WRAP_T, gl::GL_REPEAT);
-	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_WRAP_R, gl::GL_REPEAT);
+	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_WRAP_S, gl::GL_CLAMP_TO_EDGE);
+	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_WRAP_T, gl::GL_CLAMP_TO_EDGE);
 	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR);
 	gl::glSamplerParameteri(tex_so, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR);
 	gl::glBindSampler(0u, tex_so);
@@ -122,83 +136,52 @@ bool SampleApp::frame(float delta_time) {
 	static float angle = 0.f;
 	angle += delta_time * 1.5;
 	deltaTime = delta_time * 2;
-	
-	gl::glClear(gl::GL_COLOR_BUFFER_BIT | gl::GL_DEPTH_BUFFER_BIT);
-	/*
+		
 	//objects
 	{
 		// ustawienie programu, ktory bedzie uzywany podczas rysowania
-		gl::glUseProgram(simple_program);
-
-		//1 piramide mvp
-		glm::mat4x4 model_matrix_1 = translationMatrix(model_positions[0]) *
-			rotationMatrix(angle, model_positions[0]);
-		glm::mat4x4 mvp_matrix_1 = projection_matrix * camera.GetViewMatrix() * model_matrix_1;
-		//2 piramide mvp
-		glm::mat4x4 model_matrix_2 = rotationMatrix(angle, model_positions[0]) *
-			translationMatrix(model_positions[1]);
-		glm::mat4x4 mvp_matrix_2 = projection_matrix * camera.GetViewMatrix() * model_matrix_2;
-		//3 piramide mvp
-		glm::mat4x4 model_matrix_3 = rotationMatrix(angle, model_positions[0]) *
-			translationMatrix(glm::vec3(model_positions[1].x, 0.0f, model_positions[1].z)) *
-			rotationMatrix(angle, model_positions[0]) *
-			translationMatrix(model_positions[2]);
-		glm::mat4x4 mvp_matrix_3 = projection_matrix * camera.GetViewMatrix() * model_matrix_3;
+		shader.use();
 
 		// zbindowanie VAO modelu, ktorego bedziemy renderowac
 		gl::glBindVertexArray(vao_handle);
+		for (int x = 0; x < 10; x++)
+			for (int y = 0; y < 10; y++)
+				for (int z = 0; z < 10; z++) {
+					if (!mass[x][y][z]) continue;
+					glm::mat4x4 model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
+					glm::mat4x4 mvp_matrix = projection_matrix * camera.GetViewMatrix() * model_matrix;
 
-		// uaktywnienie pierwszego slotu tekstur
-		gl::glActiveTexture(gl::GL_TEXTURE0);
-		// zbindowanie tekstury do aktywnego slotu
-		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
-		//1 piramide send
-		std::array<glm::mat4x4, 2u> matrices_1 = { mvp_matrix_1, model_matrix_1 };
-		sendData(matrices_1, ubo_mvp_matrix_handle);
-		sendData(camera.Position, ubo_camera_position);
-		// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-		gl::glDrawArrays(gl::GL_TRIANGLES, 0, 18);
-
-		//2 piramide send
-		std::array<glm::mat4x4, 2u> matrices_2 = { mvp_matrix_2, model_matrix_2 };
-		sendData(matrices_2, ubo_mvp_matrix_handle);
-		sendData(camera.Position, ubo_camera_position);
-		// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-		gl::glDrawArrays(gl::GL_TRIANGLES, 0, 18);
-
-		//3 piramide send
-		std::array<glm::mat4x4, 2u> matrices_3 = { mvp_matrix_3, model_matrix_3 };
-		sendData(matrices_3, ubo_mvp_matrix_handle);
-		sendData(camera.Position, ubo_camera_position);
-		// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-		gl::glDrawArrays(gl::GL_TRIANGLES, 0, 18);
+					// uaktywnienie pierwszego slotu tekstur
+					gl::glActiveTexture(gl::GL_TEXTURE0);
+					// zbindowanie tekstury do aktywnego slotu
+					gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
+					//1 piramide send
+					std::array<glm::mat4x4, 2u> matrices_1 = { mvp_matrix, model_matrix };
+					sendData(matrices_1, ubo_mvp_matrix_handle);
+					sendData(camera.Position, ubo_camera_position);
+					// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
+					gl::glDrawArrays(gl::GL_TRIANGLES, 0, 36);
+		}
 
 		gl::glBindVertexArray(0);
 	}
-	*/
+	
 	//skybox
-	drawSkybox();
+	//drawSkybox();
 
 	return true;
 }
 
 void SampleApp::bindObject() {
-
 	std::cout << "Shaders compilation..." << std::endl;
 	// wczytanie z plikow i skompilowanie shaderow oraz utworzenie programu (VS + FS)
-	std::string vs_path = "../../../dv_project/shaders/simple_lights_vs.glsl";
-	std::string fs_path = "../../../dv_project/shaders/simple_lights_fs.glsl";
+	char* vs_path = "../../../dv_project/shaders/simple_lights_vs.glsl";
+	char* fs_path = "../../../dv_project/shaders/simple_lights_fs.glsl";
 #if WIN32
 	vs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_lights_vs.glsl";
 	fs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_lights_fs.glsl";
 #endif
-	if (auto create_program_result = OGLAppFramework::createProgram(vs_path, fs_path)) {
-		simple_program = create_program_result.value();
-	}
-	else {
-		std::cerr << "Error - can't create program..." << std::endl;
-		return;
-	}
+	shader = Shader(vs_path, fs_path);
 	std::string texture_p = "../../../dv_project/data/box.dds";
 #if WIN32
 	texture_p = "C:/Users/Mark/Desktop/dv_project/data/box.dds";
@@ -228,38 +211,56 @@ void SampleApp::bindObject() {
 	const gl::GLuint ub_point_light_binding_index = 5u;
 
 	// ustawienie programu, ktory bedzie uzywany podczas rysowania
-	gl::glUseProgram(simple_program);
+	shader.use();
 
-	//	// stworzenie tablicy z danymi o wierzcholkach 3x (x, y, z)
-	std::array<gl::GLfloat, 144u> vertices = {
-		//		// Triangle 1
-				0.0,0.5,0.0,        1.0,0.0,	0.0,1.0,1.0,
-				-0.5,-0.5,0.5,      1.0,1.0,	0.0,1.0,1.0,
-				0.5,-0.5,0.5,       0.0,1.0,	0.0,1.0,1.0,
-				//		//Triangle 2
-						0.0,0.5,0.0,        1.0,0.0,	1.0,1.0,0.0,
-						0.5,-0.5,0.5,       1.0,1.0,	1.0,1.0,0.0,
-						0.5,-0.5,-0.5,      0.0,1.0,	1.0,1.0,0.0,
-						//		//Triangle 3
-								0.0,0.5,0.0,        1.0,0.0,	0.0,1.0,-1.0,
-								0.5,-0.5,-0.5,      1.0,1.0,	0.0,1.0,-1.0,
-								-0.5,-0.5,-0.5,     0.0,1.0,	0.0,1.0,-1.0,
-								//		//Triangle 4
-										0.0,0.5,0.0,        1.0,0.0,	-1.0,1.0,0.0,
-										-0.5,-0.5,-0.5,     1.0,1.0,	-1.0,1.0,0.0,
-										-0.5,-0.5,0.5,      0.0,1.0,	-1.0,1.0,0.0,
-										//		//Triangle 5-----
-												0.5,-0.5,-0.5,      1.0,0.0,	0.0,-1.0,0.0,
-												0.5,-0.5,0.5,       1.0,1.0,	0.0,-1.0,0.0,
-												-0.5,-0.5,0.5,      0.0,1.0,	0.0,-1.0,0.0,
-												//		//Triangle 6
-														 0.5,-0.5,-0.5,     1.0,0.0,	0.0,-1.0,0.0,
-														-0.5,-0.5,0.5,      0.0,1.0,	0.0,-1.0,0.0,
-														-0.5,-0.5,-0.5,     1.0,1.0,	0.0,-1.0,0.0
+	// stworzenie tablicy z danymi o wierzcholkach 3x (x, y, z)
+	std::array<gl::GLfloat, 288u> vertices = {
+		-0.5f, 0.5f, -0.5f,		1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
+		 0.5f, 0.5f, -0.5f,		1.0f,  1.0f,	0.0f,  0.0f, -1.0f,
+		 0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	0.0f,  0.0f, -1.0f,
+		 0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	0.0f,  0.0f, -1.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f,  1.0f,	0.0f,  0.0f, -1.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
+
+		-0.5f, -0.5f,  0.5f,	1.0f,  0.5f,	0.0f,  0.0f,  1.0f,
+		 0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	0.0f,  0.0f,  1.0f,
+		 0.5f,  0.5f,  0.5f,	0.5f,  1.0f,	0.0f,  0.0f,  1.0f,
+		 0.5f,  0.5f,  0.5f,	0.5f,  1.0f,	0.0f,  0.0f,  1.0f,
+		-0.5f,  0.5f,  0.5f,	1.0f,  1.0f,	0.0f,  0.0f,  1.0f,
+		-0.5f, -0.5f,  0.5f,	1.0f,  0.5f,	0.0f,  0.0f,  1.0f,
+
+		-0.5f,  0.5f,  0.5f,	1.0f,  0.5f,	-1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f,	1.0f,  1.0f,	-1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	-1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	-1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	-1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f,	1.0f,  0.5f,	-1.0f,  0.0f,  0.0f,
+		
+		 0.5f,  0.5f,  -0.5f,	1.0f,  0.5f,	1.0f,  0.0f,  0.0f,
+		 0.5f,  0.5f,   0.5f,	1.0f,  1.0f,	1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f,   0.5f,	0.5f,  1.0f,	1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f,   0.5f,	0.5f,  1.0f,	1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f,  -0.5f,	1.0f,  1.0f,	1.0f,  0.0f,  0.0f,
+		 0.5f,  0.5f,  -0.5f,	1.0f,  0.5f,	1.0f,  0.0f,  0.0f,
+
+		-0.5f, -0.5f, -0.5f,	1.0f,  0.5f,	0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,	1.0f,  1.0f,	0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,	0.5f,  1.0f,	0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,	0.5f,  1.0f,	0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f,  0.5f,	0.0f, -1.0f,  0.0f,
+
+		0.5f,  0.5f, -0.5f,		0.5f,  0.5f,	0.0f,  1.0f,  0.0f,
+	   -0.5f,  0.5f, -0.5f,		0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
+	   -0.5f,  0.5f,  0.5f,		0.0f,  1.0f,	0.0f,  1.0f,  0.0f,
+	   -0.5f,  0.5f,  0.5f,		0.0f,  1.0f,	0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f,  0.5f,		0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f, -0.5f,		0.5f,  0.5f,	0.0f,  1.0f,  0.0f
 	};
 
-	//	// stworzenie tablicy z danymi o indeksach
-	std::array<gl::GLushort, 18u> indices = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
+	// stworzenie tablicy z danymi o indeksach
+	std::array<gl::GLushort, 36u> indices = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+	19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 };
 
 	std::cout << "Generating buffers..." << std::endl;
 	// stworzenie bufora
@@ -312,6 +313,8 @@ void SampleApp::bindObject() {
 	gl::glGenBuffers(1, &ubo_mvp_matrix_handle);
 	// zbindowanie bufora jako UBO
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_mvp_matrix_handle);
+	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
 
 	// stworzenie bufora
 	gl::glGenBuffers(1, &ubo_ambient_light);
@@ -355,6 +358,8 @@ void SampleApp::bindObject() {
 	gl::glGenBuffers(1, &ubo_camera_position);
 	// zbindowanie bufora jako UBO
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_camera_position);
+	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
 
 	// przyporzadkowanie UBO do indeksu bindowania unform block-u
 	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_mvp_binding_index, ubo_mvp_matrix_handle);
@@ -366,27 +371,22 @@ void SampleApp::bindObject() {
 	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_additional_data_binding_index, ubo_camera_position);
 	// przyporzadkowanie UBO do indeksu bindowania unform block-u
 	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_material_binding_index, ubo_material);
-
 }
 
 void SampleApp::bindSkybox() {
 	std::cout << "Shaders skybox compilation..." << std::endl;
 	// wczytanie z plikow i skompilowanie shaderow oraz utworzenie programu (VS + FS)
-	std::string vs_path = "../../../dv_project/shaders/simple_skybox_vs.glsl";
-	std::string fs_path = "../../../dv_project/shaders/simple_skybox_fs.glsl";
+	char* vs_path = "../../../dv_project/shaders/simple_skybox_vs.glsl";
+	char* fs_path = "../../../dv_project/shaders/simple_skybox_fs.glsl";
 #if WIN32
 	vs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_skybox_vs.glsl";
 	fs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_skybox_fs.glsl";
 #endif
-	if (auto create_program_result = OGLAppFramework::createProgram(vs_path, fs_path)) {
-		simple_program_sky = create_program_result.value();
-	}
-	else {
-		std::cerr << "Error - can't create program..." << std::endl;
-		return;
-	}
+	shader_sky = Shader(vs_path, fs_path);
+	// ustawienie programu, ktory bedzie uzywany podczas rysowania
+	shader_sky.use();
 
-	float skyboxVertices[] = {
+	std::array<gl::GLfloat, 108u> vertices = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
 		-1.0f, -1.0f, -1.0f,
@@ -440,7 +440,7 @@ void SampleApp::bindSkybox() {
 	// zbindowanie bufora jako VBO
 	gl::glBindBuffer(gl::GL_ARRAY_BUFFER, vbo_handle_sky);
 	// alokacja pamieci dla bufora zbindowanego jako VBO i skopiowanie danych z tablicy "vertices"
-	gl::glBufferData(gl::GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, gl::GL_STATIC_DRAW);
+	gl::glBufferData(gl::GL_ARRAY_BUFFER, vertices.size() * sizeof(gl::GLfloat), vertices.data(), gl::GL_STATIC_DRAW);
 	// odbindowanie buffora zbindowanego jako VBO (zeby przypadkiem nie narobic sobie klopotow...)
 	gl::glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
 
@@ -465,7 +465,7 @@ void SampleApp::bindSkybox() {
 	// odblokowanie mozliwosci wczytywania danych o pozycji z danej lokalizacji
 	gl::glEnableVertexAttribArray(0u);
 	// zbindowanie IB do aktualnego VAO
-	gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, index_buffer_handle);
+	gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, index_buffer_handle_sky);
 	// odbindowanie VAO (ma ono teraz informacje m.in. o VBO + IB, wiec gdy zajdzie potrzeba uzycia VBO + IB, wystarczy zbindowac VAO)
 	gl::glBindVertexArray(0u);
 	// odbindowanie buffora zbindowanego jako VBO (zeby przypadkiem nie narobic sobie klopotow...)
@@ -476,12 +476,12 @@ void SampleApp::bindSkybox() {
 	// load textures
 	// -------------
 	std::string faces[6] = {
-		"../../../dv_project/data/skybox/stormydays_bk.tga",
-		"../../../dv_project/data/skybox/stormydays_dn.tga",
 		"../../../dv_project/data/skybox/stormydays_ft.tga",
-		"../../../dv_project/data/skybox/stormydays_lf.tga",
+		"../../../dv_project/data/skybox/stormydays_bk.tga",
+		"../../../dv_project/data/skybox/stormydays_up.tga",
+		"../../../dv_project/data/skybox/stormydays_dn.tga",
 		"../../../dv_project/data/skybox/stormydays_rt.tga",
-		"../../../dv_project/data/skybox/stormydays_up.tga"
+		"../../../dv_project/data/skybox/stormydays_lf.tga"
 	};
 #if WIN32
 	faces[0] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_ft.tga";
@@ -496,17 +496,18 @@ void SampleApp::bindSkybox() {
 	const gl::GLuint ub_projection_index = 1u;
 	const gl::GLuint ub_view_index = 2u;
 
-	// ustawienie programu, ktory bedzie uzywany podczas rysowania
-	gl::glUseProgram(simple_program_sky);
-
 	// stworzenie bufora
 	gl::glGenBuffers(1, &ubo_projection_sky);
 	// zbindowanie bufora jako UBO
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_projection_sky);
+	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
 	// stworzenie bufora
 	gl::glGenBuffers(1, &ubo_view_sky);
 	// zbindowanie bufora jako UBO
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_view_sky);
+	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
 
 	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_projection_index, ubo_projection_sky);
 	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_view_index, ubo_view_sky);
@@ -514,20 +515,19 @@ void SampleApp::bindSkybox() {
 
 void SampleApp::drawSkybox() {
 	// ustawienie programu, ktory bedzie uzywany podczas rysowania
-	gl::glUseProgram(simple_program_sky);
+	shader_sky.use();
+	// skybox cube
+	gl::glBindVertexArray(vao_handle_sky);
 	glm::mat4x4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-	// draw skybox as last
 	gl::glDepthFunc(gl::GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 	glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
 	sendData(view, ubo_view_sky);
 	sendData(projection, ubo_projection_sky);
-	// skybox cube
-	gl::glBindVertexArray(vao_handle_sky);
 	gl::glActiveTexture(gl::GL_TEXTURE0);
 	gl::glBindTexture(gl::GL_TEXTURE_CUBE_MAP, tex_handle_sky);
 	gl::glDrawArrays(gl::GL_TRIANGLES, 0, 36);
-	gl::glBindVertexArray(0);
 	gl::glDepthFunc(gl::GL_LESS); // set depth function back to default
+	gl::glBindVertexArray(0);
 }
 
 unsigned int SampleApp::loadCubemap(std::string faces[])
@@ -660,7 +660,7 @@ void SampleApp::release(void) {
     }
 
     // odbindowanie IB
-    glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, 0);
+    gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, 0);
     if (index_buffer_handle)
     {
         // usuniecie IB
@@ -668,11 +668,6 @@ void SampleApp::release(void) {
         index_buffer_handle = 0u;
     }
 
-    // ustawienie aktywnego programu na 0 (zaden)
-    gl::glUseProgram(0);
-
-    // usuniecie programu
-    gl::glDeleteProgram(simple_program);
-	// usuniecie programu
-	gl::glDeleteProgram(simple_program_sky);
+	shader.deleteProgram();
+	shader_sky.deleteProgram();
 }

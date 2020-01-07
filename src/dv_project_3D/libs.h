@@ -11,3 +11,4 @@
 #include <array>
 #include <vector>
 #include "camera.h"
+#include "shader.h"

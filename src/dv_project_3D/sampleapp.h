@@ -22,8 +22,6 @@ class SampleApp : public OGLAppFramework::OGLApplication
 	gl::GLuint vbo_handle_sky;
 	gl::GLuint ubo_projection_sky;
 	gl::GLuint ubo_view_sky;
-	gl::GLuint simple_program;
-	gl::GLuint simple_program_sky;
 
 	glm::mat4x4 projection_matrix;
 
