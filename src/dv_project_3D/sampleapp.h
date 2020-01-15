@@ -2,6 +2,7 @@
 
 #include "libs.h"
 
+
 class SampleApp : public OGLAppFramework::OGLApplication
 {
 	gl::GLuint tex_so;
@@ -38,6 +39,9 @@ public:
 
 	template <typename T>
 	void sendData(T object, gl::GLuint handle);
+	template <typename T>
+	void createBuffer(T object, gl::GLuint index, gl::GLuint *handle);
+	void createBuffer(gl::GLuint index, gl::GLuint *handle);
     // metoda wywolywana podczas zmiany rozmiaru okna
     virtual void reshapeCallback(std::uint16_t width, std::uint16_t height) override;
     // metoda wywolywana podczas wcisniecia przycisku

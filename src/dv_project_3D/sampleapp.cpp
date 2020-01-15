@@ -1,16 +1,22 @@
 #include "sampleapp.h"
+#include "camera.h"
+#include "shader.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include <time.h>
 
 using namespace OGLAppFramework;
+
+const float PI = 3.141592653;
 
 // settings
 const unsigned int SCR_WIDTH = 1366;
 const unsigned int SCR_HEIGHT = 768;
 
+//scene
+bool mass[1000][1000][1000];
+
 // camera
-Camera camera(glm::vec3(10.0f, 3.0f, 10.0f));
+Camera camera(glm::vec3(8.0f, 20.0f, 8.0f));
 float lastX = (float)SCR_WIDTH / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
@@ -21,9 +27,6 @@ float deltaTime = 0.0f;
 //shaders
 Shader shader = Shader();
 Shader shader_sky = Shader();
-
-//scene
-bool mass[1000][1000][1000];
 
 const glm::vec3 model_positions[3] = {
 	glm::vec3(0.0f,  1.0f,  0.0f),
@@ -46,30 +49,31 @@ struct PointLight {
 SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, "Game - 3D", 4u, 2u),
 vbo_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u),
 vao_handle(0u), ubo_mvp_matrix_handle(0u), ubo_intensity_handle(0u), tex_handle(0u),
-tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u),index_buffer_handle_sky(0u),
+tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u), index_buffer_handle_sky(0u),
 ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u),
-ubo_projection_sky(0u), ubo_view_sky(0u){
+ubo_projection_sky(0u), ubo_view_sky(0u) {
 }
 
 SampleApp::~SampleApp() {
 }
 
 void SampleApp::reshapeCallback(std::uint16_t width, std::uint16_t height) {
-    std::cout << "Reshape..." << std::endl;
-    std::cout << "New window size: " << width << " x " << height << std::endl;
+	std::cout << "Reshape..." << std::endl;
+	std::cout << "New window size: " << width << " x " << height << std::endl;
 	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)width / height, 0.1f, 100.0f);
 	gl::glViewport(0, 0, width, height);
 }
 
 void SampleApp::keyCallback(int key, int scancode, int action, int mods) {
-    //std::cout << "Key pressed" << std::endl;
-	if (key == GLFW_KEY_W)
+	if (key == GLFW_KEY_SPACE && (action == 0 || action == 2))
+		camera.ProcessKeyboard(UP, deltaTime); 
+	if (key == GLFW_KEY_W && (action == 0 || action == 2))
 		camera.ProcessKeyboard(FORWARD, deltaTime);
-	if (key == GLFW_KEY_S)
+	if (key == GLFW_KEY_S && (action == 0 || action == 2)) 
 		camera.ProcessKeyboard(BACKWARD, deltaTime);
-	if (key == GLFW_KEY_D)
+	if (key == GLFW_KEY_D && (action == 0 || action == 2)) 
 		camera.ProcessKeyboard(RIGHT, deltaTime);
-	if (key == GLFW_KEY_A)
+	if (key == GLFW_KEY_A && (action == 0 || action == 2)) 
 		camera.ProcessKeyboard(LEFT, deltaTime);
 }
 
@@ -91,7 +95,25 @@ void SampleApp::cursorPosCallback(double xpos, double ypos) {
 }
 
 void SampleApp::mouseButtonCallback(int button, int action, int mods) {
-    std::cout << "Mouse button pressed" << std::endl;
+	if (action == 0) {
+		float x = camera.Position.x + 2;
+		float y = camera.Position.y;
+		float z = camera.Position.z;
+
+		int X, Y, Z;
+		X = (int)x; Y = (int)y; Z = (int)z;
+		int dist = 0;
+		if (button == 1) {
+			std::cout << "Mouse button pressed " << x << " " << y << " " << z << std::endl;
+
+			mass[X][Y][Z] = 0;
+		}
+		else {
+			std::cout << "Mouse button pressed " << X << " " << Y << " " << Z << std::endl;
+
+			mass[X][Y][Z] = 1;
+		}
+	}
 }
 
 bool SampleApp::init(void) {
@@ -111,9 +133,9 @@ bool SampleApp::init(void) {
 	gl::glEnable(gl::GL_DEPTH_TEST);
 
 	srand(time(0));
-	for (int x = 0; x < 20; x++)
+	for (int x = 0; x < 10; x++)
 		for (int y = 0; y < 20; y++)
-			for (int z = 0; z < 20; z++) {
+			for (int z = 0; z < 10; z++) {
 				if ((y == 0) || rand() % 100 == 1) mass[x][y][z] = true;
 			}
 
@@ -135,8 +157,8 @@ bool SampleApp::init(void) {
 bool SampleApp::frame(float delta_time) {
 	static float angle = 0.f;
 	angle += delta_time * 1.5;
-	deltaTime = delta_time * 2;
-		
+	deltaTime = delta_time * 1.1;
+	camera.update(deltaTime, mass);
 	//objects
 	{
 		// ustawienie programu, ktory bedzie uzywany podczas rysowania
@@ -160,8 +182,8 @@ bool SampleApp::frame(float delta_time) {
 					sendData(matrices_1, ubo_mvp_matrix_handle);
 					sendData(camera.Position, ubo_camera_position);
 					// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-					gl::glDrawArrays(gl::GL_TRIANGLES, 0, 36);
-		}
+					gl::glDrawElements(gl::GL_TRIANGLES, 36, gl::GL_UNSIGNED_SHORT, nullptr);
+				}
 
 		gl::glBindVertexArray(0);
 	}
@@ -309,68 +331,24 @@ void SampleApp::bindObject() {
 	// odbindowanie buffora zbindowanego jako bufor indeksow (zeby przypadkiem nie narobic sobie klopotow...)
 	gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, 0);
 
-	// stworzenie bufora
-	gl::glGenBuffers(1, &ubo_mvp_matrix_handle);
-	// zbindowanie bufora jako UBO
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_mvp_matrix_handle);
-	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	createBuffer(ub_mvp_binding_index, &ubo_mvp_matrix_handle);
 
-	// stworzenie bufora
-	gl::glGenBuffers(1, &ubo_ambient_light);
-	// zbindowanie bufora jako UBO
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_ambient_light);
-	// przygotowanie danych dla GPU
 	glm::vec3 ambient_light_color = glm::vec3(0.2f, 0.2f, 0.2f);
-	// alokacja pamieci dla bufora zbindowanego jako UBO i skopiowanie danych
-	gl::glBufferData(gl::GL_UNIFORM_BUFFER, sizeof(ambient_light_color), &ambient_light_color, gl::GL_DYNAMIC_DRAW);
-	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	createBuffer(ambient_light_color, ub_ambient_light_binding_index, &ubo_ambient_light);
 
-	// stworzenie bufora
-	gl::glGenBuffers(1, &ubo_point_light);
-	// zbindowanie bufora jako UBO
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_point_light);
-	// przygotowanie danych dla GPU
 	PointLight pointLight = PointLight();
 	pointLight.position_ws = glm::vec3(5.5f, 2.5f, 0.5f);
 	pointLight.r = 33.5;
 	pointLight.color = glm::vec3(1.f, 1.f, 1.f);
-	// alokacja pamieci dla bufora zbindowanego jako UBO i skopiowanie danych
-	gl::glBufferData(gl::GL_UNIFORM_BUFFER, sizeof(pointLight), &pointLight, gl::GL_DYNAMIC_DRAW);
-	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	createBuffer(pointLight, ub_point_light_binding_index, &ubo_point_light);
 
-	// stworzenie bufora
-	gl::glGenBuffers(1, &ubo_material);
-	// zbindowanie bufora jako UBO
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_material);
 	TextMaterial material = TextMaterial();
 	material.color = glm::vec3(1.f, 1.f, 1.f);
 	material.specular_intensity = 1.f;
 	material.specular_power = 1.f;
-	// alokacja pamieci dla bufora zbindowanego jako UBO i skopiowanie danych
-	gl::glBufferData(gl::GL_UNIFORM_BUFFER, sizeof(material), &material, gl::GL_DYNAMIC_DRAW);
-	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	createBuffer(material, ub_material_binding_index, &ubo_material);
 
-	// stworzenie bufora
-	gl::glGenBuffers(1, &ubo_camera_position);
-	// zbindowanie bufora jako UBO
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_camera_position);
-	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
-
-	// przyporzadkowanie UBO do indeksu bindowania unform block-u
-	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_mvp_binding_index, ubo_mvp_matrix_handle);
-	// przyporzadkowanie UBO do indeksu bindowania unform block-u
-	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_ambient_light_binding_index, ubo_ambient_light);
-	// przyporzadkowanie UBO do indeksu bindowania unform block-u
-	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_point_light_binding_index, ubo_point_light);
-	// przyporzadkowanie UBO do indeksu bindowania unform block-u
-	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_additional_data_binding_index, ubo_camera_position);
-	// przyporzadkowanie UBO do indeksu bindowania unform block-u
-	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_material_binding_index, ubo_material);
+	createBuffer(ub_additional_data_binding_index, &ubo_camera_position);
 }
 
 void SampleApp::bindSkybox() {
@@ -496,21 +474,8 @@ void SampleApp::bindSkybox() {
 	const gl::GLuint ub_projection_index = 1u;
 	const gl::GLuint ub_view_index = 2u;
 
-	// stworzenie bufora
-	gl::glGenBuffers(1, &ubo_projection_sky);
-	// zbindowanie bufora jako UBO
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_projection_sky);
-	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
-	// stworzenie bufora
-	gl::glGenBuffers(1, &ubo_view_sky);
-	// zbindowanie bufora jako UBO
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_view_sky);
-	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
-
-	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_projection_index, ubo_projection_sky);
-	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, ub_view_index, ubo_view_sky);
+	createBuffer(ub_projection_index, &ubo_projection_sky);
+	createBuffer(ub_view_index, &ubo_view_sky);
 }
 
 void SampleApp::drawSkybox() {
@@ -578,6 +543,29 @@ void SampleApp::sendData(T object, gl::GLuint handle) {
 	}
 	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+}
+void SampleApp::createBuffer(gl::GLuint index, gl::GLuint *handle) {
+	// stworzenie bufora
+	gl::glGenBuffers(1, handle);
+	// zbindowanie bufora jako UBO
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, *handle);
+	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	// przyporzadkowanie UBO do indeksu bindowania unform block-u
+	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, index, *handle);
+}
+template <typename T>
+void SampleApp::createBuffer(T object, gl::GLuint index, gl::GLuint *handle) {
+	// stworzenie bufora
+	gl::glGenBuffers(1, handle);
+	// zbindowanie bufora jako UBO
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, *handle);
+	// alokacja pamieci dla bufora zbindowanego jako UBO i skopiowanie danych
+	gl::glBufferData(gl::GL_UNIFORM_BUFFER, sizeof(object), &object, gl::GL_DYNAMIC_DRAW);
+	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	// przyporzadkowanie UBO do indeksu bindowania unform block-u
+	gl::glBindBufferBase(gl::GL_UNIFORM_BUFFER, index, *handle);
 }
 
 void SampleApp::release(void) {
