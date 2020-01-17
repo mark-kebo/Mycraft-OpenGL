@@ -25,7 +25,22 @@ struct PointLight {
 	glm::vec3 position_ws;
 	float r;
 	glm::vec3 color;
+	float some1;
 };
+
+struct PointLightData {
+	int n;
+	float some1;
+	float some2;
+	float some3;
+	PointLight lights[3];
+};
+
+PointLight pointLight = PointLight();
+PointLight pointLight2 = PointLight();
+PointLight pointLight3 = PointLight();
+PointLightData data = PointLightData();
+
 
 SampleApp::SampleApp() : OGLAppFramework::OGLApplication(1366u, 768u, "OGLSample 5 - 3D", 4u, 2u), 
 simple_program(0u), vbo_handle(0u), index_buffer_handle(0u), 
@@ -104,6 +119,23 @@ bool SampleApp::init(void) {
 	camera_position = glm::vec3(0.f, 5.f, 5.f);
 	camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
 	camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
+
+	pointLight.position_ws = glm::vec3(2.f, 0.5f, 0.f);
+	pointLight.r = 83.5;
+	pointLight.color = glm::vec3(1.f, 0.f, 0.f);
+
+	pointLight2.r = 83.5;
+	pointLight2.position_ws = glm::vec3(0.5f, 1.5f, 0.f);
+	pointLight2.color = glm::vec3(0.f, 1.f, 0.f);
+
+	pointLight3.r = 83.5;
+	pointLight3.position_ws = glm::vec3(1.5f, 2.f, 0.f);
+	pointLight3.color = glm::vec3(0.f, 0.f, 1.f);
+
+	data.n = 3;
+	data.lights[0] = pointLight;
+	data.lights[1] = pointLight2;
+	data.lights[2] = pointLight3;
 
     // ustalamy domyślny kolor ekranu
     gl::glClearColor(0.f, 0.f, 0.2f, 1.f);
@@ -282,13 +314,10 @@ bool SampleApp::init(void) {
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, ubo_point_light);
 	// przygotowanie danych dla GPU
 
-	PointLight pointLight = PointLight();
 
-	pointLight.position_ws = glm::vec3(5.5f, 2.5f, 0.5f);
-	pointLight.r = 33.5;
-	pointLight.color = glm::vec3(1.f, 0.f, 0.f);
+
 	// alokacja pamieci dla bufora zbindowanego jako UBO i skopiowanie danych
-	gl::glBufferData(gl::GL_UNIFORM_BUFFER, sizeof(pointLight), &pointLight, gl::GL_DYNAMIC_DRAW);
+	gl::glBufferData(gl::GL_UNIFORM_BUFFER, sizeof(data), &data, gl::GL_DYNAMIC_DRAW);
 	// odbindowanie buffora zbindowanego jako UBO (zeby przypadkiem nie narobic sobie klopotow...)
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
 
@@ -329,6 +358,9 @@ bool SampleApp::init(void) {
 bool SampleApp::frame(float delta_time) {
 	static float angle = 0.f;
 	angle += delta_time * 1.5;
+
+
+
 
 	// stworzenie macierzy model
 	auto view_matrix = glm::lookAt(camera_position, camera_position + camera_front, camera_up);
