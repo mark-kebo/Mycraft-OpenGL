@@ -5,7 +5,6 @@
 
 using namespace OGLAppFramework;
 
-// Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum Camera_Movement {
 	FORWARD,
 	BACKWARD,
@@ -14,7 +13,6 @@ enum Camera_Movement {
 	UP
 };
 
-// Default camera values
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
 const float SPEED = 2.5f;
@@ -41,15 +39,14 @@ public:
 
 	float width, height, depth;
 	bool onGround;
-	bool isFrontCollision;
-	bool isBackCollision;
+	bool isNearWalls;
+	Camera_Movement lastButtonPressed;
 
 	Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
 	{
 		onGround = false;
-		isFrontCollision = false;
-		isBackCollision = false;
-		width = 0; height = 0; depth = 0;
+		isNearWalls = false;
+		width = 0.5; height = 0.5; depth = 1;
 		Position = position;
 		dPosition = glm::vec3(0, 0, 0);
 		WorldUp = up;
@@ -60,7 +57,7 @@ public:
 	Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
 	{
 		Position = glm::vec3(posX, posY, posZ);
-		dPosition = glm::vec3(0, 0, 0);
+		dPosition = glm::vec3(posX, posY, posZ);
 		WorldUp = glm::vec3(upX, upY, upZ);
 		Yaw = yaw;
 		Pitch = pitch;
@@ -76,17 +73,18 @@ public:
 	{
 		glm::vec3 rotationVec = glm::vec3(1, 0, 1);
 		float velocity = MovementSpeed * deltaTime;
-		if (direction == FORWARD && !isFrontCollision)
-			dPosition += rotationVec * Front * velocity;
-		if (direction == BACKWARD && !isBackCollision)
-			dPosition -= rotationVec * Front * velocity;
-		if (direction == LEFT && !isBackCollision)
-			dPosition -= Right * velocity;
-		if (direction == RIGHT && !isFrontCollision)
-			dPosition += Right * velocity;
+		if (direction == FORWARD)
+			if (!isNearWalls || direction != lastButtonPressed) {  dPosition += rotationVec * Front * velocity;};
+		if (direction == BACKWARD)
+			if (!isNearWalls || direction != lastButtonPressed) {  dPosition -= rotationVec * Front * velocity;};
+		if (direction == LEFT)
+			if (!isNearWalls || direction != lastButtonPressed) {  dPosition -= Right * velocity; };
+		if (direction == RIGHT)
+			if (!isNearWalls || direction != lastButtonPressed) {  dPosition += Right * velocity;};
 		if (direction == UP) {
 			if (onGround) { onGround = false; dPosition.y = 0.3; };
 		}
+		lastButtonPressed = direction;
 	}
 
 	void ProcessMouseMovement(float xoffset, float yoffset, gl::GLboolean constrainPitch = true)
@@ -108,6 +106,10 @@ public:
 		updateCameraVectors();
 	}
 
+	glm::vec3 getBeforePlayerPosition() {
+		return glm::vec3(Position.x + .5, Position.y + .5, Position.z + .5) + Front;
+	}
+
 	void ProcessMouseScroll(float yoffset)
 	{
 		if (Zoom >= 1.0f && Zoom <= 45.0f)
@@ -123,13 +125,18 @@ public:
 
 		if (!onGround) dPosition.y -= velocity;
 		onGround = false;
+		isNearWalls = false;
 
 		Position.x += dPosition.x;
 		Position.y += dPosition.y;
 		Position.z += dPosition.z;
-		collision(glm::vec3(Position.x, Position.y, Position.z), mass);
+		collision(mass);
 
 		dPosition.x = dPosition.z = 0;
+		if (Position.y < -100.f) {
+			Position.y = 20.f;
+			dPosition.y = 0;
+		}
 	}
 
 private:
@@ -144,24 +151,15 @@ private:
 		Up = glm::normalize(glm::cross(Right, Front));
 	}
 
-	void collision(glm::vec3 point, bool mass[1000][1000][1000])
-	{
-		if ((point.x > 0 || point.x <= 10) && point.y + 0.5 > 0 && (point.z > 0 || point.x <= 10)) {
-			if (mass[(int)(point.x)][(int)(point.y - 0.5)][(int)(point.z)]) {
+	void collision(bool mass[1000][1000][1000]) {
+		if (check(Position.x, Position.y, Position.z)) {
+			if (mass[(int)(Position.x + .5)][int(Position.y - .5)][(int)(Position.z + .5)]) {
 				onGround = true; dPosition.y = 0;
 			}
-			if (mass[(int)(point.x + 0.5)][(int)(point.y + 0.5)][(int)(point.z)]) {
-				std::cout << point.x << " " << point.y << " " << point.z << std::endl;
-				isFrontCollision = true;
-			} else if (mass[(int)(point.x)][(int)(point.y + 0.5)][(int)(point.z + 0.5)]) {
-				std::cout << point.x << " "<< point.z << std::endl;
-				isBackCollision = true;
-			} else {
-				isBackCollision = false;
-				isFrontCollision = false;
+			if (mass[(int)(Position.x + .5)][int(Position.y + .5)][(int)(Position.z + .5)]) {
+				isNearWalls = true; dPosition.x = 0; dPosition.z = 0; 
 			}
 		}
-
 	}
 
 	bool check(int x, int y, int z)

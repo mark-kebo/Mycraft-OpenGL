@@ -6,19 +6,17 @@
 
 using namespace OGLAppFramework;
 
-const float PI = 3.141592653;
-
 // settings
-const unsigned int SCR_WIDTH = 1366;
-const unsigned int SCR_HEIGHT = 768;
+float SCR_WIDTH = 1366;
+float SCR_HEIGHT = 768;
 
 //scene
 bool mass[1000][1000][1000];
 
 // camera
-Camera camera(glm::vec3(8.0f, 20.0f, 8.0f));
-float lastX = (float)SCR_WIDTH / 2.0;
-float lastY = (float)SCR_HEIGHT / 2.0;
+Camera camera(glm::vec3(8.0f, 8.0f, 8.0f));
+float lastX = SCR_WIDTH / 2.0;
+float lastY = SCR_HEIGHT / 2.0;
 bool firstMouse = true;
 
 // timing
@@ -61,6 +59,8 @@ void SampleApp::reshapeCallback(std::uint16_t width, std::uint16_t height) {
 	std::cout << "Reshape..." << std::endl;
 	std::cout << "New window size: " << width << " x " << height << std::endl;
 	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)width / height, 0.1f, 100.0f);
+	SCR_WIDTH = width;
+	SCR_HEIGHT = height;
 	gl::glViewport(0, 0, width, height);
 }
 
@@ -96,22 +96,12 @@ void SampleApp::cursorPosCallback(double xpos, double ypos) {
 
 void SampleApp::mouseButtonCallback(int button, int action, int mods) {
 	if (action == 0) {
-		float x = camera.Position.x + 2;
-		float y = camera.Position.y;
-		float z = camera.Position.z;
+		std::cout << "Mouse  " << camera.getBeforePlayerPosition().x << " " << camera.getBeforePlayerPosition().y << " " << camera.getBeforePlayerPosition().z << std::endl;
 
-		int X, Y, Z;
-		X = (int)x; Y = (int)y; Z = (int)z;
-		int dist = 0;
 		if (button == 1) {
-			std::cout << "Mouse button pressed " << x << " " << y << " " << z << std::endl;
-
-			mass[X][Y][Z] = 0;
-		}
-		else {
-			std::cout << "Mouse button pressed " << X << " " << Y << " " << Z << std::endl;
-
-			mass[X][Y][Z] = 1;
+			mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] = 0;
+		} else {
+			mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] = 1;
 		}
 	}
 }
@@ -134,7 +124,7 @@ bool SampleApp::init(void) {
 
 	srand(time(0));
 	for (int x = 0; x < 10; x++)
-		for (int y = 0; y < 20; y++)
+		for (int y = 0; y < 10; y++)
 			for (int z = 0; z < 10; z++) {
 				if ((y == 0) || rand() % 100 == 1) mass[x][y][z] = true;
 			}
@@ -155,8 +145,6 @@ bool SampleApp::init(void) {
 }
 
 bool SampleApp::frame(float delta_time) {
-	static float angle = 0.f;
-	angle += delta_time * 1.5;
 	deltaTime = delta_time * 1.1;
 	camera.update(deltaTime, mass);
 	//objects
@@ -166,6 +154,11 @@ bool SampleApp::frame(float delta_time) {
 
 		// zbindowanie VAO modelu, ktorego bedziemy renderowac
 		gl::glBindVertexArray(vao_handle);
+		// uaktywnienie pierwszego slotu tekstur
+		gl::glActiveTexture(gl::GL_TEXTURE0);
+		// zbindowanie tekstury do aktywnego slotu
+		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
+
 		for (int x = 0; x < 10; x++)
 			for (int y = 0; y < 10; y++)
 				for (int z = 0; z < 10; z++) {
@@ -173,10 +166,6 @@ bool SampleApp::frame(float delta_time) {
 					glm::mat4x4 model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
 					glm::mat4x4 mvp_matrix = projection_matrix * camera.GetViewMatrix() * model_matrix;
 
-					// uaktywnienie pierwszego slotu tekstur
-					gl::glActiveTexture(gl::GL_TEXTURE0);
-					// zbindowanie tekstury do aktywnego slotu
-					gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
 					//1 piramide send
 					std::array<glm::mat4x4, 2u> matrices_1 = { mvp_matrix, model_matrix };
 					sendData(matrices_1, ubo_mvp_matrix_handle);

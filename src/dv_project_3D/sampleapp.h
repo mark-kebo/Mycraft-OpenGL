@@ -29,14 +29,10 @@ class SampleApp : public OGLAppFramework::OGLApplication
 public:
     SampleApp();
     virtual ~SampleApp() override;
-
 	void bindObject();
-
 	void bindSkybox();
 	void drawSkybox();
-
 	unsigned int loadCubemap(std::string faces[]);
-
 	template <typename T>
 	void sendData(T object, gl::GLuint handle);
 	template <typename T>
