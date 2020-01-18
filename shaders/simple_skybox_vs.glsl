@@ -4,19 +4,13 @@ layout (location = 0) in vec3 aPos;
 
 out vec3 TexCoords;
 
-layout(std140, binding = 1) uniform Projection
-{
+layout(std140, binding = 6) uniform Matrices {
     mat4x4 projection;
-} projection;
+	mat4x4 view;
+} matrices;
 
-layout(std140, binding = 2) uniform View
-{
-    mat4x4 view;
-} view;
-
-void main()
-{
+void main() {
     TexCoords = aPos;
-    vec4 pos = projection.projection * view.view * vec4(aPos, 1.0);
+    vec4 pos = matrices.projection * matrices.view * vec4(aPos, 1.0);
     gl_Position = pos.xyww;
 }  

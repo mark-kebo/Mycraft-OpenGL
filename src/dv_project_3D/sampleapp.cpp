@@ -48,8 +48,7 @@ SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, 
 vbo_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u),
 vao_handle(0u), ubo_mvp_matrix_handle(0u), ubo_intensity_handle(0u), tex_handle(0u),
 tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u), index_buffer_handle_sky(0u),
-ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u),
-ubo_projection_sky(0u), ubo_view_sky(0u) {
+ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u), ubo_skybox(0u) {
 }
 
 SampleApp::~SampleApp() {
@@ -128,8 +127,8 @@ bool SampleApp::init(void) {
 				if ((y == 0) || rand() % 100 == 1) mass[x][y][z] = true;
 			}
 
-	bindObject();
 	bindSkybox();
+	bindObject();
 
 	// Tworzenie SO
 	gl::glGenSamplers(1, &tex_so);
@@ -165,8 +164,8 @@ bool SampleApp::frame(float delta_time) {
 					glm::mat4x4 model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
 					glm::mat4x4 mvp_matrix = projection_matrix * camera.GetViewMatrix() * model_matrix;
 
-					std::array<glm::mat4x4, 2u> matrices_1 = { mvp_matrix, model_matrix };
-					shader.sendData(matrices_1, ubo_mvp_matrix_handle);
+					std::array<glm::mat4x4, 2u> matrices = { mvp_matrix, model_matrix };
+					shader.sendData(matrices, ubo_mvp_matrix_handle);
 					shader.sendData(camera.Position, ubo_camera_position);
 					// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
 					gl::glDrawElements(gl::GL_TRIANGLES, 36, gl::GL_UNSIGNED_SHORT, nullptr);
@@ -278,24 +277,24 @@ void SampleApp::bindObject() {
 	shader.bindVBOandIBtoVAO(vertex_position_loction, vertex_tex_uv_loction, vertex_normal_loction, &index_buffer_handle);
 	shader.unbindVAOandVBO();
 
-	shader.createBuffer(0, ub_mvp_binding_index, &ubo_mvp_matrix_handle);
-
+	glm::mat4x4 model_matrix = translationMatrix(glm::vec3(0.0f, 0.0f, 0.0f));
+	glm::mat4x4 mvp_matrix = projection_matrix * camera.GetViewMatrix() * model_matrix;
+	std::array<glm::mat4x4, 2u> matrices = { mvp_matrix, model_matrix };
 	glm::vec3 ambient_light_color = glm::vec3(0.2f, 0.2f, 0.2f);
-	shader.createBuffer(ambient_light_color, ub_ambient_light_binding_index, &ubo_ambient_light);
-
 	PointLight pointLight = PointLight();
 	pointLight.position_ws = glm::vec3(5.5f, 2.5f, 0.5f);
 	pointLight.r = 33.5;
 	pointLight.color = glm::vec3(1.f, 1.f, 1.f);
-	shader.createBuffer(pointLight, ub_point_light_binding_index, &ubo_point_light);
-
 	TextMaterial material = TextMaterial();
 	material.color = glm::vec3(1.f, 1.f, 1.f);
 	material.specular_intensity = 1.f;
 	material.specular_power = 1.f;
-	shader.createBuffer(material, ub_material_binding_index, &ubo_material);
 
-	shader.createBuffer(0, ub_additional_data_binding_index, &ubo_camera_position);
+	shader.createBuffer(matrices, ub_mvp_binding_index, &ubo_mvp_matrix_handle);
+	shader.createBuffer(ambient_light_color, ub_ambient_light_binding_index, &ubo_ambient_light);
+	shader.createBuffer(pointLight, ub_point_light_binding_index, &ubo_point_light);
+	shader.createBuffer(material, ub_material_binding_index, &ubo_material);
+	shader.createBuffer(camera.Position, ub_additional_data_binding_index, &ubo_camera_position);
 }
 
 void SampleApp::bindSkybox() {
@@ -310,8 +309,7 @@ void SampleApp::bindSkybox() {
 
 	// ustawienie informacji o lokalizacji atrybutu pozycji w vs (musi sie zgadzac z tym co mamy w VS!!!)
 	const gl::GLuint vertex_position_loction = 0u;
-	const gl::GLuint ub_projection_index = 1u;
-	const gl::GLuint ub_view_index = 2u;
+	const gl::GLuint ub_skybox_index = 6u;
 
 	shader_sky = Shader(vs_path, fs_path);
 	// ustawienie programu, ktory bedzie uzywany podczas rysowania
@@ -392,8 +390,9 @@ void SampleApp::bindSkybox() {
 #endif
 	tex_handle_sky = loadCubemap(faces);
 
-	shader_sky.createBuffer(0, ub_view_index, &ubo_view_sky);
-	shader_sky.createBuffer(0, ub_projection_index, &ubo_projection_sky);
+	glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+	std::array<glm::mat4x4, 2u> matrices = { projection_matrix, view };
+	shader_sky.createBuffer(matrices, ub_skybox_index, &ubo_skybox);
 }
 
 void SampleApp::drawSkybox() {
@@ -403,8 +402,8 @@ void SampleApp::drawSkybox() {
 	gl::glBindVertexArray(vao_handle_sky);
 	gl::glDepthFunc(gl::GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 	glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-	shader_sky.sendData(view, ubo_view_sky);
-	shader_sky.sendData(projection_matrix, ubo_projection_sky);
+	std::array<glm::mat4x4, 2u> matrices = { projection_matrix, view };
+	shader_sky.sendData(matrices, ubo_skybox);
 	gl::glActiveTexture(gl::GL_TEXTURE0);
 	gl::glBindTexture(gl::GL_TEXTURE_CUBE_MAP, tex_handle_sky);
 	gl::glDrawArrays(gl::GL_TRIANGLES, 0, 36);
@@ -475,18 +474,11 @@ void SampleApp::release(void) {
 		vbo_handle_sky = 0u;
 	}
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
-	if (ubo_projection_sky)
+	if (ubo_skybox)
 	{
 		// usuniecie UBO
-		gl::glDeleteBuffers(1, &ubo_projection_sky);
-		ubo_projection_sky = 0u;
-	}
-	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
-	if (ubo_view_sky)
-	{
-		// usuniecie UBO
-		gl::glDeleteBuffers(1, &ubo_view_sky);
-		ubo_view_sky = 0u;
+		gl::glDeleteBuffers(1, &ubo_skybox);
+		ubo_skybox = 0u;
 	}
 	// odbindowanie UBO
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
