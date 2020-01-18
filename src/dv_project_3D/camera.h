@@ -16,7 +16,7 @@ enum Camera_Movement {
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
 const float SPEED = 2.5f;
-const float SENSITIVITY = 0.1f;
+const float SENSITIVITY = 0.4f;
 const float ZOOM = 45.0f;
 
 class Camera
@@ -120,7 +120,7 @@ public:
 			Zoom = 45.0f;
 	}
 
-	void update(float deltaTime, bool mass[1000][1000][1000]) {
+	void update(float deltaTime, bool mass[100][100][100]) {
 		float velocity = MovementSpeed * deltaTime * 0.1;
 
 		if (!onGround) dPosition.y -= velocity;
@@ -151,7 +151,7 @@ private:
 		Up = glm::normalize(glm::cross(Right, Front));
 	}
 
-	void collision(bool mass[1000][1000][1000]) {
+	void collision(bool mass[100][100][100]) {
 		if (check(Position.x, Position.y, Position.z)) {
 			if (mass[(int)(Position.x + .5)][int(Position.y - .5)][(int)(Position.z + .5)]) {
 				onGround = true; dPosition.y = 0;
@@ -164,9 +164,9 @@ private:
 
 	bool check(int x, int y, int z)
 	{
-		if ((x < 0) || (x >= 1000) ||
-			(y < 0) || (y >= 1000) ||
-			(z < 0) || (z >= 1000)) return false;
+		if ((x < 0) || (x >= 100) ||
+			(y < 0) || (y >= 100) ||
+			(z < 0) || (z >= 100)) return false;
 
 		return true;
 	}
