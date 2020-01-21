@@ -14,7 +14,7 @@ float SCR_HEIGHT = 768;
 bool mass[100][100][100];
 
 // camera
-Camera camera(glm::vec3(8.0f, 8.0f, 8.0f));
+Camera camera(glm::vec3(50.0f, 5.0f, 50.0f));
 float lastX = SCR_WIDTH / 2.0;
 float lastY = SCR_HEIGHT / 2.0;
 bool firstMouse = true;
@@ -25,12 +25,6 @@ float deltaTime = 0.0f;
 //shaders
 Shader shader = Shader();
 Shader shader_sky = Shader();
-
-const glm::vec3 model_positions[3] = {
-	glm::vec3(0.0f,  1.0f,  0.0f),
-	glm::vec3(0.0f, 1.0f, 4.0f),
-	glm::vec3(0.0f,  1.0f, -2.0f)
-};
 
 struct TextMaterial {
 	glm::vec3 color;
@@ -121,10 +115,10 @@ bool SampleApp::init(void) {
 	gl::glEnable(gl::GL_DEPTH_TEST);
 
 	srand(time(0));
-	for (int x = 0; x < 10; x++)
-		for (int y = 0; y < 10; y++)
-			for (int z = 0; z < 10; z++) {
-				if ((y == 0) || rand() % 100 == 1) mass[x][y][z] = true;
+	for (int x = 0; x < 5; x++)
+		for (int y = 0; y < 5; y++)
+			for (int z = 0; z < 5; z++) {
+				if ((y == 0) || rand() % 100 == 1) mass[x + 50][y][z + 50] = true;
 			}
 
 	bindSkybox();
@@ -157,9 +151,9 @@ bool SampleApp::frame(float delta_time) {
 		// zbindowanie tekstury do aktywnego slotu
 		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
 
-		for (int x = 0; x < 10; x++)
-			for (int y = 0; y < 10; y++)
-				for (int z = 0; z < 10; z++) {
+		for (int x = 0; x < 100; x++)
+			for (int y = 0; y < 100; y++)
+				for (int z = 0; z < 100; z++) {
 					if (!mass[x][y][z]) continue;
 					glm::mat4x4 model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
 					glm::mat4x4 mvp_matrix = projection_matrix * camera.GetViewMatrix() * model_matrix;
@@ -277,24 +271,21 @@ void SampleApp::bindObject() {
 	shader.bindVBOandIBtoVAO(vertex_position_loction, vertex_tex_uv_loction, vertex_normal_loction, &index_buffer_handle);
 	shader.unbindVAOandVBO();
 
-	glm::mat4x4 model_matrix = translationMatrix(glm::vec3(0.0f, 0.0f, 0.0f));
-	glm::mat4x4 mvp_matrix = projection_matrix * camera.GetViewMatrix() * model_matrix;
-	std::array<glm::mat4x4, 2u> matrices = { mvp_matrix, model_matrix };
 	glm::vec3 ambient_light_color = glm::vec3(0.2f, 0.2f, 0.2f);
 	PointLight pointLight = PointLight();
-	pointLight.position_ws = glm::vec3(5.5f, 2.5f, 0.5f);
-	pointLight.r = 33.5;
+	pointLight.position_ws = glm::vec3(55.5f, 22.5f, 50.5f);
+	pointLight.r = 133.5;
 	pointLight.color = glm::vec3(1.f, 1.f, 1.f);
 	TextMaterial material = TextMaterial();
 	material.color = glm::vec3(1.f, 1.f, 1.f);
 	material.specular_intensity = 1.f;
 	material.specular_power = 1.f;
 
-	shader.createBuffer(matrices, ub_mvp_binding_index, &ubo_mvp_matrix_handle);
+	shader.createBuffer(0, ub_mvp_binding_index, &ubo_mvp_matrix_handle);
 	shader.createBuffer(ambient_light_color, ub_ambient_light_binding_index, &ubo_ambient_light);
 	shader.createBuffer(pointLight, ub_point_light_binding_index, &ubo_point_light);
 	shader.createBuffer(material, ub_material_binding_index, &ubo_material);
-	shader.createBuffer(camera.Position, ub_additional_data_binding_index, &ubo_camera_position);
+	shader.createBuffer(0, ub_additional_data_binding_index, &ubo_camera_position);
 }
 
 void SampleApp::bindSkybox() {
