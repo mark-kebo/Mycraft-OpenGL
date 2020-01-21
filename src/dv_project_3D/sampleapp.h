@@ -2,11 +2,11 @@
 
 #include "libs.h"
 
+
 class SampleApp : public OGLAppFramework::OGLApplication
 {
 	gl::GLuint tex_so;
 	gl::GLuint tex_handle;
-    gl::GLuint simple_program;
     gl::GLuint vbo_handle;
     gl::GLuint index_buffer_handle;
     gl::GLuint vao_handle;
@@ -17,16 +17,21 @@ class SampleApp : public OGLAppFramework::OGLApplication
 	gl::GLuint ubo_camera_position;
 	gl::GLuint ubo_material;
 
+	gl::GLuint tex_handle_sky;
+	gl::GLuint index_buffer_handle_sky;
+	gl::GLuint vao_handle_sky;
+	gl::GLuint vbo_handle_sky;
+	gl::GLuint ubo_skybox;
+
 	glm::mat4x4 projection_matrix;
-	glm::vec3 camera_position;
-	glm::vec3 camera_front;
-	glm::vec3 camera_up;
 
 public:
     SampleApp();
     virtual ~SampleApp() override;
-	template <typename T>
-	void sendData(T object, gl::GLuint handle);
+	void bindObject();
+	void bindSkybox();
+	void drawSkybox();
+	unsigned int loadCubemap(std::string faces[]);
     // metoda wywolywana podczas zmiany rozmiaru okna
     virtual void reshapeCallback(std::uint16_t width, std::uint16_t height) override;
     // metoda wywolywana podczas wcisniecia przycisku

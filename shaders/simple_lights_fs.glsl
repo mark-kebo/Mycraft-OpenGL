@@ -65,8 +65,6 @@ void main()
 		specular +=  spec * point_light.pointLightData[i].color * intens; 
 	}
 
-
-
     vec3 result_color = clamp(diffuse * material.color * texture(color_tex, tex_uv).rgb + specular, 0.f, 1.f);
     frag_color = vec4(result_color, 1.f);
 	//frag_color = vec4(norm, 1.f); // <----- debug
