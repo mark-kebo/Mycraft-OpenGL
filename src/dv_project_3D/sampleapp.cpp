@@ -39,19 +39,15 @@ struct PointLight {
 	float some1;
 };
 
-
 struct PointLightData {
 	int n;
 	float some1;
 	float some2;
 	float some3;
-	PointLight lights[3];
+	PointLight lights[2];
 };
 
-PointLight pointLight = PointLight();
-PointLight pointLight2 = PointLight();
-PointLight pointLight3 = PointLight();
-PointLightData data = PointLightData();
+PointLightData lights = PointLightData();
 
 SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, "Game - 3D", 4u, 2u),
 vbo_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u),
@@ -66,7 +62,7 @@ SampleApp::~SampleApp() {
 void SampleApp::reshapeCallback(std::uint16_t width, std::uint16_t height) {
 	std::cout << "Reshape..." << std::endl;
 	std::cout << "New window size: " << width << " x " << height << std::endl;
-	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)width / height, 0.1f, 100.0f);
+	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)width / height, 0.1f, 20.0f);
 	SCR_WIDTH = width;
 	SCR_HEIGHT = height;
 	gl::glViewport(0, 0, width, height);
@@ -116,7 +112,7 @@ void SampleApp::mouseButtonCallback(int button, int action, int mods) {
 bool SampleApp::init(void) {
     std::cout << "Init..." << std::endl;
 
-	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
 
     // ustalamy domyślny kolor ekranu
 	gl::glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -159,6 +155,16 @@ bool SampleApp::frame(float delta_time) {
 		// ustawienie programu, ktory bedzie uzywany podczas rysowania
 		shader.use();
 
+		//glm::mat4x4 matrix = rotationMatrix(deltaTime, lights.lights[0].position_ws) *
+		//	translationMatrix(lights.lights[1].position_ws);
+
+		gl::GLfloat camX = sin(deltaTime);
+		gl::GLfloat camZ = cos(deltaTime);
+
+		lights.lights[0].position_ws = glm::vec3(lights.lights[0].position_ws.x*camX,
+			lights.lights[0].position_ws.y*deltaTime,
+			lights.lights[0].position_ws.z*camZ);
+
 		// zbindowanie VAO modelu, ktorego bedziemy renderowac
 		gl::glBindVertexArray(vao_handle);
 		// uaktywnienie pierwszego slotu tekstur
@@ -176,6 +182,7 @@ bool SampleApp::frame(float delta_time) {
 					std::array<glm::mat4x4, 2u> matrices = { mvp_matrix, model_matrix };
 					shader.sendData(matrices, ubo_mvp_matrix_handle);
 					shader.sendData(camera.Position, ubo_camera_position);
+					shader.sendData(lights, ubo_point_light);
 					// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
 					gl::glDrawElements(gl::GL_TRIANGLES, 36, gl::GL_UNSIGNED_SHORT, nullptr);
 				}
@@ -286,22 +293,17 @@ void SampleApp::bindObject() {
 	shader.bindVBOandIBtoVAO(vertex_position_loction, vertex_tex_uv_loction, vertex_normal_loction, &index_buffer_handle);
 	shader.unbindVAOandVBO();
 
-  pointLight.position_ws = glm::vec3(52.f, 0.5f, 50.f);
-	pointLight.r = 83.5;
-	pointLight.color = glm::vec3(1.f, 0.f, 0.f);
-
-	pointLight2.r = 83.5;
-	pointLight2.position_ws = glm::vec3(50.5f, 1.5f, 50.f);
-	pointLight2.color = glm::vec3(0.f, 1.f, 0.f);
-
-	pointLight3.r = 83.5;
-	pointLight3.position_ws = glm::vec3(51.5f, 2.f, 50.f);
-	pointLight3.color = glm::vec3(0.f, 0.f, 1.f);
-
-	data.n = 3;
-	data.lights[0] = pointLight;
-	data.lights[1] = pointLight2;
-	data.lights[2] = pointLight3;
+	PointLight pointLight = PointLight();
+	PointLight pointLight2 = PointLight();
+	pointLight.position_ws = glm::vec3(50.f, -150.f, 50.f);
+	pointLight.r = 1000.f;
+	pointLight.color = glm::vec3(1.f, 0.f, 1.f);
+	pointLight2.r = 1000.f;
+	pointLight2.position_ws = glm::vec3(50.f, 150.f, 50.f);
+	pointLight2.color = glm::vec3(1.f, 1.f, 1.f);
+	lights.n = 2;
+	lights.lights[0] = pointLight;
+	lights.lights[1] = pointLight2;
   
 	glm::vec3 ambient_light_color = glm::vec3(0.2f, 0.2f, 0.2f);
 	TextMaterial material = TextMaterial();
@@ -311,7 +313,7 @@ void SampleApp::bindObject() {
 
 	shader.createBuffer(0, ub_mvp_binding_index, &ubo_mvp_matrix_handle);
 	shader.createBuffer(ambient_light_color, ub_ambient_light_binding_index, &ubo_ambient_light);
-	shader.createBuffer(data, ub_point_light_binding_index, &ubo_point_light);
+	shader.createBuffer(lights, ub_point_light_binding_index, &ubo_point_light);
 	shader.createBuffer(material, ub_material_binding_index, &ubo_material);
 	shader.createBuffer(0, ub_additional_data_binding_index, &ubo_camera_position);
 }
