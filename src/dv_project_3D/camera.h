@@ -121,7 +121,7 @@ public:
 	}
 
 	void update(float deltaTime, bool mass[100][100][100]) {
-		float velocity = MovementSpeed * deltaTime * 0.1;
+		float velocity = MovementSpeed * deltaTime * 0.05;
 
 		if (!onGround) dPosition.y -= velocity;
 		onGround = false;

@@ -18,6 +18,7 @@ Camera camera(glm::vec3(50.0f, 5.0f, 50.0f));
 float lastX = SCR_WIDTH / 2.0;
 float lastY = SCR_HEIGHT / 2.0;
 bool firstMouse = true;
+int elementsCount = 0;
 
 // timing
 float deltaTime = 0.0f;
@@ -47,7 +48,10 @@ struct PointLightData {
 	PointLight lights[2];
 };
 
-PointLightData lights = PointLightData();
+struct ModelMatrices {
+	glm::mat4x4 mvp_matrix;
+	glm::mat4x4 model_matrix;
+};
 
 SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, "Game - 3D", 4u, 2u),
 vbo_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u),
@@ -103,8 +107,10 @@ void SampleApp::mouseButtonCallback(int button, int action, int mods) {
 		std::cout << "Mouse  " << camera.getBeforePlayerPosition().x << " " << camera.getBeforePlayerPosition().y << " " << camera.getBeforePlayerPosition().z << std::endl;
 		if (button == 1) {
 			mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] = 0;
+			elementsCount--;
 		} else {
 			mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] = 1;
+			elementsCount++;
 		}
 	}
 }
@@ -113,7 +119,7 @@ bool SampleApp::init(void) {
     std::cout << "Init..." << std::endl;
 
 	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
-
+	camera.MovementSpeed = 8.f;
     // ustalamy domyślny kolor ekranu
 	gl::glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
@@ -126,10 +132,13 @@ bool SampleApp::init(void) {
 	gl::glEnable(gl::GL_DEPTH_TEST);
 
 	srand(time(0));
-	for (int x = 0; x < 5; x++)
-		for (int y = 0; y < 5; y++)
-			for (int z = 0; z < 5; z++) {
-				if ((y == 0) || rand() % 100 == 1) mass[x + 50][y][z + 50] = true;
+	for (int x = 0; x < 10; x++)
+		for (int y = 0; y < 10; y++)
+			for (int z = 0; z < 10; z++) {
+				if ((y == 0) || rand() % 100 == 1) {
+					mass[x + 50][y][z + 50] = true;
+					elementsCount++;
+				}
 			}
 
 	bindSkybox();
@@ -148,6 +157,8 @@ bool SampleApp::init(void) {
 }
 
 bool SampleApp::frame(float delta_time) {
+	std::cout << "FPS:" << 1/delta_time << std::endl;
+
 	deltaTime = delta_time * 1.1;
 	camera.update(deltaTime, mass);
 	//objects
@@ -155,37 +166,30 @@ bool SampleApp::frame(float delta_time) {
 		// ustawienie programu, ktory bedzie uzywany podczas rysowania
 		shader.use();
 
-		//glm::mat4x4 matrix = rotationMatrix(deltaTime, lights.lights[0].position_ws) *
-		//	translationMatrix(lights.lights[1].position_ws);
-
-		gl::GLfloat camX = sin(deltaTime);
-		gl::GLfloat camZ = cos(deltaTime);
-
-		lights.lights[0].position_ws = glm::vec3(lights.lights[0].position_ws.x*camX,
-			lights.lights[0].position_ws.y*deltaTime,
-			lights.lights[0].position_ws.z*camZ);
-
 		// zbindowanie VAO modelu, ktorego bedziemy renderowac
 		gl::glBindVertexArray(vao_handle);
 		// uaktywnienie pierwszego slotu tekstur
 		gl::glActiveTexture(gl::GL_TEXTURE0);
 		// zbindowanie tekstury do aktywnego slotu
 		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
+		
+		std::array<ModelMatrices, 1000u> array;
 
+		int index = 0;
 		for (int x = 0; x < 100; x++)
 			for (int y = 0; y < 100; y++)
 				for (int z = 0; z < 100; z++) {
 					if (!mass[x][y][z]) continue;
-					glm::mat4x4 model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
-					glm::mat4x4 mvp_matrix = projection_matrix * camera.GetViewMatrix() * model_matrix;
-
-					std::array<glm::mat4x4, 2u> matrices = { mvp_matrix, model_matrix };
-					shader.sendData(matrices, ubo_mvp_matrix_handle);
-					shader.sendData(camera.Position, ubo_camera_position);
-					shader.sendData(lights, ubo_point_light);
-					// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-					gl::glDrawElements(gl::GL_TRIANGLES, 36, gl::GL_UNSIGNED_SHORT, nullptr);
+					ModelMatrices matrices = ModelMatrices();
+					matrices.model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
+					matrices.mvp_matrix = projection_matrix * camera.GetViewMatrix() * matrices.model_matrix;
+					array[index] = matrices;
+					index++;
 				}
+		shader.sendData(array, ubo_mvp_matrix_handle);
+		shader.sendData(camera.Position, ubo_camera_position);
+		// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
+		gl::glDrawElementsInstanced(gl::GL_TRIANGLES, 36, gl::GL_UNSIGNED_SHORT, nullptr, elementsCount);
 
 		gl::glBindVertexArray(0);
 	}
@@ -293,6 +297,7 @@ void SampleApp::bindObject() {
 	shader.bindVBOandIBtoVAO(vertex_position_loction, vertex_tex_uv_loction, vertex_normal_loction, &index_buffer_handle);
 	shader.unbindVAOandVBO();
 
+	PointLightData lights = PointLightData();
 	PointLight pointLight = PointLight();
 	PointLight pointLight2 = PointLight();
 	pointLight.position_ws = glm::vec3(50.f, -150.f, 50.f);
