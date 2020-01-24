@@ -13,6 +13,8 @@ float SCR_HEIGHT = 768;
 //scene
 bool mass[100][100][100];
 
+bool isCube = true;
+
 // camera
 Camera camera(glm::vec3(50.0f, 5.0f, 50.0f));
 float lastX = SCR_WIDTH / 2.0;
@@ -54,9 +56,9 @@ struct ModelMatrices {
 };
 
 SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, "Game - 3D", 4u, 2u),
-vbo_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u),
-vao_handle(0u), ubo_mvp_matrix_handle(0u), ubo_intensity_handle(0u), tex_handle(0u),
-tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u), index_buffer_handle_sky(0u),
+vbo_cube_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u), 
+vao_cube_handle(0u), ubo_mvp_matrix_handle(0u), ubo_intensity_handle(0u), tex_handle(0u), vao_piramide_handle(0u),
+tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u), index_buffer_handle_sky(0u), vbo_piramide_handle(0u), 
 ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u), ubo_skybox(0u) {
 }
 
@@ -83,6 +85,8 @@ void SampleApp::keyCallback(int key, int scancode, int action, int mods) {
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 	if (key == GLFW_KEY_A && (action == 0 || action == 2)) 
 		camera.ProcessKeyboard(LEFT, deltaTime);
+	if (key == GLFW_KEY_P && (action == 0 || action == 2))
+		isCube = !isCube;
 }
 
 void SampleApp::cursorPosCallback(double xpos, double ypos) {
@@ -119,8 +123,10 @@ bool SampleApp::init(void) {
     std::cout << "Init..." << std::endl;
 
 	projection_matrix = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
+	
 	camera.MovementSpeed = 8.f;
-    // ustalamy domyślny kolor ekranu
+   
+	// ustalamy domyślny kolor ekranu
 	gl::glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
     // wlaczmy renderowanie tylko jednej strony poligon-ow
@@ -132,9 +138,9 @@ bool SampleApp::init(void) {
 	gl::glEnable(gl::GL_DEPTH_TEST);
 
 	srand(time(0));
-	for (int x = 0; x < 10; x++)
-		for (int y = 0; y < 10; y++)
-			for (int z = 0; z < 10; z++) {
+	for (int x = 0; x < 5; x++)
+		for (int y = 0; y < 5; y++)
+			for (int z = 0; z < 5; z++) {
 				if ((y == 0) || rand() % 100 == 1) {
 					mass[x + 50][y][z + 50] = true;
 					elementsCount++;
@@ -142,7 +148,82 @@ bool SampleApp::init(void) {
 			}
 
 	bindSkybox();
-	bindObject();
+
+	gl::GLfloat vertices_cube[] = {
+		-0.5f, 0.5f, -0.5f,		1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
+		 0.5f, 0.5f, -0.5f,		1.0f,  1.0f,	0.0f,  0.0f, -1.0f,
+		 0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	0.0f,  0.0f, -1.0f,
+		 0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	0.0f,  0.0f, -1.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f,  1.0f,	0.0f,  0.0f, -1.0f,
+		-0.5f, 0.5f, -0.5f,		1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
+
+		-0.5f, -0.5f,  0.5f,	1.0f,  0.5f,	0.0f,  0.0f,  1.0f,
+		 0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	0.0f,  0.0f,  1.0f,
+		 0.5f,  0.5f,  0.5f,	0.5f,  1.0f,	0.0f,  0.0f,  1.0f,
+		 0.5f,  0.5f,  0.5f,	0.5f,  1.0f,	0.0f,  0.0f,  1.0f,
+		-0.5f,  0.5f,  0.5f,	1.0f,  1.0f,	0.0f,  0.0f,  1.0f,
+		-0.5f, -0.5f,  0.5f,	1.0f,  0.5f,	0.0f,  0.0f,  1.0f,
+
+		-0.5f,  0.5f,  0.5f,	1.0f,  0.5f,	-1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f,	1.0f,  1.0f,	-1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	-1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	-1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	-1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f,	1.0f,  0.5f,	-1.0f,  0.0f,  0.0f,
+
+		 0.5f,  0.5f,  -0.5f,	1.0f,  0.5f,	1.0f,  0.0f,  0.0f,
+		 0.5f,  0.5f,   0.5f,	1.0f,  1.0f,	1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f,   0.5f,	0.5f,  1.0f,	1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f,   0.5f,	0.5f,  1.0f,	1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f,  -0.5f,	1.0f,  1.0f,	1.0f,  0.0f,  0.0f,
+		 0.5f,  0.5f,  -0.5f,	1.0f,  0.5f,	1.0f,  0.0f,  0.0f,
+
+		-0.5f, -0.5f, -0.5f,	1.0f,  0.5f,	0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,	1.0f,  1.0f,	0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,	0.5f,  1.0f,	0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,	0.5f,  1.0f,	0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,	1.0f,  0.5f,	0.0f, -1.0f,  0.0f,
+
+		0.5f,  0.5f, -0.5f,		0.5f,  0.5f,	0.0f,  1.0f,  0.0f,
+	   -0.5f,  0.5f, -0.5f,		0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
+	   -0.5f,  0.5f,  0.5f,		0.0f,  1.0f,	0.0f,  1.0f,  0.0f,
+	   -0.5f,  0.5f,  0.5f,		0.0f,  1.0f,	0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f,  0.5f,		0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
+		0.5f,  0.5f, -0.5f,		0.5f,  0.5f,	0.0f,  1.0f,  0.0f
+	};
+	gl::GLushort indices_cube[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+	19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 };
+	bindObject(vertices_cube, indices_cube, &vbo_cube_handle, &vao_cube_handle);
+
+	gl::GLfloat vertices_piramide[] = {
+		//		// Triangle 1
+				0.0,0.5,0.0,        1.0,0.5,	0.0,1.0,1.0,
+				-0.5,-0.5,0.5,      1.0,1.0,	0.0,1.0,1.0,
+				0.5,-0.5,0.5,       0.5,1.0,	0.0,1.0,1.0,
+				//		//Triangle 2
+						0.0,0.5,0.0,        1.0,0.5,	1.0,1.0,0.0,
+						0.5,-0.5,0.5,       1.0,1.0,	1.0,1.0,0.0,
+						0.5,-0.5,-0.5,      0.5,1.0,	1.0,1.0,0.0,
+						//		//Triangle 3
+								0.0,0.5,0.0,        1.0,0.5,	0.0,1.0,-1.0,
+								0.5,-0.5,-0.5,      1.0,1.0,	0.0,1.0,-1.0,
+								-0.5,-0.5,-0.5,     0.5,1.0,	0.0,1.0,-1.0,
+								//		//Triangle 4
+										0.0,0.5,0.0,        1.0,0.5,	-1.0,1.0,0.0,
+										-0.5,-0.5,-0.5,     1.0,1.0,	-1.0,1.0,0.0,
+										-0.5,-0.5,0.5,      0.5,1.0,	-1.0,1.0,0.0,
+										//		//Triangle 5-----
+												0.5,-0.5,-0.5,      1.0,0.5,	0.0,-1.0,0.0,
+												0.5,-0.5,0.5,       1.0,1.0,	0.0,-1.0,0.0,
+												-0.5,-0.5,0.5,      0.5,1.0,	0.0,-1.0,0.0,
+												//		//Triangle 6
+														 0.5,-0.5,-0.5,     1.0,0.5,	0.0,-1.0,0.0,
+														-0.5,-0.5,0.5,      0.5,1.0,	0.0,-1.0,0.0,
+														-0.5,-0.5,-0.5,     1.0,1.0,	0.0,-1.0,0.0
+	};
+	gl::GLushort indices_piramide[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
+	bindObject(vertices_piramide, indices_piramide, &vbo_piramide_handle, &vao_piramide_handle);
 
 	// Tworzenie SO
 	gl::glGenSamplers(1, &tex_so);
@@ -157,41 +238,16 @@ bool SampleApp::init(void) {
 }
 
 bool SampleApp::frame(float delta_time) {
-	std::cout << "FPS:" << 1/delta_time << std::endl;
+	//std::cout << "FPS:" << 1/delta_time << std::endl;
 
 	deltaTime = delta_time * 1.1;
 	camera.update(deltaTime, mass);
+	
 	//objects
-	{
-		// ustawienie programu, ktory bedzie uzywany podczas rysowania
-		shader.use();
-
-		// zbindowanie VAO modelu, ktorego bedziemy renderowac
-		gl::glBindVertexArray(vao_handle);
-		// uaktywnienie pierwszego slotu tekstur
-		gl::glActiveTexture(gl::GL_TEXTURE0);
-		// zbindowanie tekstury do aktywnego slotu
-		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
-		
-		std::array<ModelMatrices, 1000u> array;
-
-		int index = 0;
-		for (int x = 0; x < 100; x++)
-			for (int y = 0; y < 100; y++)
-				for (int z = 0; z < 100; z++) {
-					if (!mass[x][y][z]) continue;
-					ModelMatrices matrices = ModelMatrices();
-					matrices.model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
-					matrices.mvp_matrix = projection_matrix * camera.GetViewMatrix() * matrices.model_matrix;
-					array[index] = matrices;
-					index++;
-				}
-		shader.sendData(array, ubo_mvp_matrix_handle);
-		shader.sendData(camera.Position, ubo_camera_position);
-		// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
-		gl::glDrawElementsInstanced(gl::GL_TRIANGLES, 36, gl::GL_UNSIGNED_SHORT, nullptr, elementsCount);
-
-		gl::glBindVertexArray(0);
+	if (isCube) {
+		drawObjects(&tex_handle, &vao_cube_handle, 36);
+	} else {
+		drawObjects(&tex_handle, &vao_piramide_handle, 18);
 	}
 	
 	//skybox
@@ -200,7 +256,40 @@ bool SampleApp::frame(float delta_time) {
 	return true;
 }
 
-void SampleApp::bindObject() {
+void SampleApp::drawObjects(gl::GLuint *texture_handle, gl::GLuint *vao, gl::GLsizei size) {
+	// ustawienie programu, ktory bedzie uzywany podczas rysowania
+	shader.use();
+
+	// zbindowanie VAO modelu, ktorego bedziemy renderowac
+	gl::glBindVertexArray(*vao);
+	// uaktywnienie pierwszego slotu tekstur
+	gl::glActiveTexture(gl::GL_TEXTURE0);
+	// zbindowanie tekstury do aktywnego slotu
+	gl::glBindTexture(gl::GL_TEXTURE_2D, *texture_handle);
+
+	std::array<ModelMatrices, 1000u> array;
+
+	int index = 0;
+	for (int x = 0; x < 100; x++)
+		for (int y = 0; y < 100; y++)
+			for (int z = 0; z < 100; z++) {
+				if (!mass[x][y][z]) continue;
+					ModelMatrices matrices = ModelMatrices();
+					matrices.model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
+					matrices.mvp_matrix = projection_matrix * camera.GetViewMatrix() * matrices.model_matrix;
+					array[index] = matrices;
+					index++;
+			}
+
+	shader.sendData(array, ubo_mvp_matrix_handle);
+	shader.sendData(camera.Position, ubo_camera_position);
+	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
+	gl::glDrawElementsInstanced(gl::GL_TRIANGLES, size, gl::GL_UNSIGNED_SHORT, nullptr, elementsCount);
+
+	gl::glBindVertexArray(0);
+}
+
+void SampleApp::bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao) {
 	std::cout << "Shaders compilation..." << std::endl;
 	// wczytanie z plikow i skompilowanie shaderow oraz utworzenie programu (VS + FS)
 	char* vs_path = "../../../dv_project/shaders/simple_lights_vs.glsl";
@@ -241,58 +330,9 @@ void SampleApp::bindObject() {
 	// ustawienie programu, ktory bedzie uzywany podczas rysowania
 	shader.use();
 
-	// stworzenie tablicy z danymi o wierzcholkach 3x (x, y, z)
-	gl::GLfloat vertices [] = {
-		-0.5f, 0.5f, -0.5f,		1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
-		 0.5f, 0.5f, -0.5f,		1.0f,  1.0f,	0.0f,  0.0f, -1.0f,
-		 0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	0.0f,  0.0f, -1.0f,
-		 0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	0.0f,  0.0f, -1.0f,
-		-0.5f, -0.5f, -0.5f,	1.0f,  1.0f,	0.0f,  0.0f, -1.0f,
-		-0.5f, 0.5f, -0.5f,		1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
-
-		-0.5f, -0.5f,  0.5f,	1.0f,  0.5f,	0.0f,  0.0f,  1.0f,
-		 0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	0.0f,  0.0f,  1.0f,
-		 0.5f,  0.5f,  0.5f,	0.5f,  1.0f,	0.0f,  0.0f,  1.0f,
-		 0.5f,  0.5f,  0.5f,	0.5f,  1.0f,	0.0f,  0.0f,  1.0f,
-		-0.5f,  0.5f,  0.5f,	1.0f,  1.0f,	0.0f,  0.0f,  1.0f,
-		-0.5f, -0.5f,  0.5f,	1.0f,  0.5f,	0.0f,  0.0f,  1.0f,
-
-		-0.5f,  0.5f,  0.5f,	1.0f,  0.5f,	-1.0f,  0.0f,  0.0f,
-		-0.5f,  0.5f, -0.5f,	1.0f,  1.0f,	-1.0f,  0.0f,  0.0f,
-		-0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	-1.0f,  0.0f,  0.0f,
-		-0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	-1.0f,  0.0f,  0.0f,
-		-0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	-1.0f,  0.0f,  0.0f,
-		-0.5f,  0.5f,  0.5f,	1.0f,  0.5f,	-1.0f,  0.0f,  0.0f,
-		
-		 0.5f,  0.5f,  -0.5f,	1.0f,  0.5f,	1.0f,  0.0f,  0.0f,
-		 0.5f,  0.5f,   0.5f,	1.0f,  1.0f,	1.0f,  0.0f,  0.0f,
-		 0.5f, -0.5f,   0.5f,	0.5f,  1.0f,	1.0f,  0.0f,  0.0f,
-		 0.5f, -0.5f,   0.5f,	0.5f,  1.0f,	1.0f,  0.0f,  0.0f,
-		 0.5f, -0.5f,  -0.5f,	1.0f,  1.0f,	1.0f,  0.0f,  0.0f,
-		 0.5f,  0.5f,  -0.5f,	1.0f,  0.5f,	1.0f,  0.0f,  0.0f,
-
-		-0.5f, -0.5f, -0.5f,	1.0f,  0.5f,	0.0f, -1.0f,  0.0f,
-		 0.5f, -0.5f, -0.5f,	1.0f,  1.0f,	0.0f, -1.0f,  0.0f,
-		 0.5f, -0.5f,  0.5f,	0.5f,  1.0f,	0.0f, -1.0f,  0.0f,
-		 0.5f, -0.5f,  0.5f,	0.5f,  1.0f,	0.0f, -1.0f,  0.0f,
-		-0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	0.0f, -1.0f,  0.0f,
-		-0.5f, -0.5f, -0.5f,	1.0f,  0.5f,	0.0f, -1.0f,  0.0f,
-
-		0.5f,  0.5f, -0.5f,		0.5f,  0.5f,	0.0f,  1.0f,  0.0f,
-	   -0.5f,  0.5f, -0.5f,		0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
-	   -0.5f,  0.5f,  0.5f,		0.0f,  1.0f,	0.0f,  1.0f,  0.0f,
-	   -0.5f,  0.5f,  0.5f,		0.0f,  1.0f,	0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f,  0.5f,		0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
-		0.5f,  0.5f, -0.5f,		0.5f,  0.5f,	0.0f,  1.0f,  0.0f
-	};
-
-	// stworzenie tablicy z danymi o indeksach
-	gl::GLushort indices []= { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-	19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 };
-
 	std::cout << "Generating buffers..." << std::endl;
-	shader.createVAO(&vao_handle);
-	shader.createVBO(&vbo_handle, vertices, 288);
+	shader.createVAO(vao);
+	shader.createVBO(vbo, vertices, 288);
 	shader.createIndexBuffer(indices, 36, &index_buffer_handle);
 	shader.bindVBOandIBtoVAO(vertex_position_loction, vertex_tex_uv_loction, vertex_normal_loction, &index_buffer_handle);
 	shader.unbindVAOandVBO();
@@ -300,11 +340,11 @@ void SampleApp::bindObject() {
 	PointLightData lights = PointLightData();
 	PointLight pointLight = PointLight();
 	PointLight pointLight2 = PointLight();
-	pointLight.position_ws = glm::vec3(50.f, -150.f, 50.f);
-	pointLight.r = 1000.f;
-	pointLight.color = glm::vec3(1.f, 0.f, 1.f);
-	pointLight2.r = 1000.f;
-	pointLight2.position_ws = glm::vec3(50.f, 150.f, 50.f);
+	pointLight.position_ws = glm::vec3(10.f, 100.f, 90.f);
+	pointLight.r = 300.f;
+	pointLight.color = glm::vec3(1.f, 0.5f, 0.4f);
+	pointLight2.r = 300.f;
+	pointLight2.position_ws = glm::vec3(90.f, 100.f, 10.f);
 	pointLight2.color = glm::vec3(1.f, 1.f, 1.f);
 	lights.n = 2;
 	lights.lights[0] = pointLight;
@@ -451,7 +491,6 @@ void SampleApp::drawSkybox() {
 	gl::glBindVertexArray(0);
 }
 
-
 unsigned int SampleApp::loadCubemap(std::string faces[])
 {
 	unsigned int textureID;
@@ -515,6 +554,14 @@ void SampleApp::release(void) {
 		vbo_handle_sky = 0u;
 	}
 	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
+	
+	if (vbo_piramide_handle)
+	{
+		// usuniecie UBO
+		gl::glDeleteBuffers(1, &vbo_piramide_handle);
+		vbo_piramide_handle = 0u;
+	}
+	gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
 	if (ubo_skybox)
 	{
 		// usuniecie UBO
@@ -541,20 +588,20 @@ void SampleApp::release(void) {
 
     // odbindowanie VAO
     gl::glBindVertexArray(0);
-    if (vao_handle)
+    if (vao_cube_handle)
     {
         // usuniecie VAO
-        gl::glDeleteVertexArrays(1, &vao_handle);
-        vao_handle = 0u;
+        gl::glDeleteVertexArrays(1, &vao_cube_handle);
+        vao_cube_handle = 0u;
     }
 
     // odbindowanie VBO
     gl::glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
-    if (vbo_handle)
+    if (vbo_cube_handle)
     {
         // usuniecie VBO
-        gl::glDeleteBuffers(1, &vbo_handle);
-        vbo_handle = 0u;
+        gl::glDeleteBuffers(1, &vbo_cube_handle);
+        vbo_cube_handle = 0u;
     }
 
     // odbindowanie IB

@@ -5,11 +5,14 @@
 
 class SampleApp : public OGLAppFramework::OGLApplication
 {
+	gl::GLuint vao_cube_handle;
+	gl::GLuint vbo_cube_handle;
+	gl::GLuint vao_piramide_handle;
+	gl::GLuint vbo_piramide_handle;
+
 	gl::GLuint tex_so;
 	gl::GLuint tex_handle;
-    gl::GLuint vbo_handle;
     gl::GLuint index_buffer_handle;
-    gl::GLuint vao_handle;
     gl::GLuint ubo_mvp_matrix_handle;
 	gl::GLuint ubo_intensity_handle;
 	gl::GLuint ubo_ambient_light;
@@ -28,7 +31,8 @@ class SampleApp : public OGLAppFramework::OGLApplication
 public:
     SampleApp();
     virtual ~SampleApp() override;
-	void bindObject();
+	void drawObjects(gl::GLuint *texture_handle, gl::GLuint *vao, gl::GLsizei size);
+	void bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao);
 	void bindSkybox();
 	void drawSkybox();
 	unsigned int loadCubemap(std::string faces[]);
