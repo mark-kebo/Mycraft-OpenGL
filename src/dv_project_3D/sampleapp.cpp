@@ -398,6 +398,7 @@ void SampleApp::bindSkybox() {
 
 	// load textures
 	// -------------
+	
 	std::string faces[6] = {
 		"../../../dv_project/data/skybox/stormydays_ft.tga",
 		"../../../dv_project/data/skybox/stormydays_bk.tga",
@@ -415,6 +416,19 @@ void SampleApp::bindSkybox() {
 	faces[5] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_lf.tga";
 #endif
 	tex_handle_sky = loadCubemap(faces);
+	
+	/*
+	std::string texture_p = "../../../dv_project/data/SkyDawn.dds";
+#if WIN32
+	texture_p = "C:/Users/Mark/Desktop/dv_project/data/SkyDawn.dds";
+#endif
+	if (auto load_t_r = OGLAppFramework::loadTexFromFileAndCreateTO(texture_p)) {
+		tex_handle_sky = load_t_r.value();
+	}
+	else {
+		return;
+	}
+	*/
 
 	glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
 	std::array<glm::mat4x4, 2u> matrices = { projection_matrix, view };
@@ -432,7 +446,7 @@ void SampleApp::drawSkybox() {
 	shader_sky.sendData(matrices, ubo_skybox);
 	gl::glActiveTexture(gl::GL_TEXTURE0);
 	gl::glBindTexture(gl::GL_TEXTURE_CUBE_MAP, tex_handle_sky);
-	gl::glDrawArrays(gl::GL_TRIANGLES, 0, 36);
+	gl::glDrawElements(gl::GL_TRIANGLES, 36, gl::GL_UNSIGNED_SHORT, nullptr);
 	gl::glDepthFunc(gl::GL_LESS); // set depth function back to default
 	gl::glBindVertexArray(0);
 }
