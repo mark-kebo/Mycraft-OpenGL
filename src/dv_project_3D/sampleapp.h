@@ -31,7 +31,7 @@ class SampleApp : public OGLAppFramework::OGLApplication
 public:
     SampleApp();
     virtual ~SampleApp() override;
-	void drawObjects(gl::GLuint *texture_handle, gl::GLuint *vao, gl::GLsizei size);
+	void drawObjects(gl::GLuint *vao, gl::GLsizei size);
 	void bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao);
 	void bindSkybox();
 	void drawSkybox();

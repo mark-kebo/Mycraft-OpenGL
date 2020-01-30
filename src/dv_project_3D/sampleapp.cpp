@@ -108,14 +108,19 @@ void SampleApp::cursorPosCallback(double xpos, double ypos) {
 
 void SampleApp::mouseButtonCallback(int button, int action, int mods) {
 	if (action == 0) {
-		std::cout << "Mouse  " << camera.getBeforePlayerPosition().x << " " << camera.getBeforePlayerPosition().y << " " << camera.getBeforePlayerPosition().z << std::endl;
 		if (button == 1) {
-			mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] = 0;
-			elementsCount--;
+			if (mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] != 0) {
+				mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] = 0;
+				elementsCount--;
+			}
 		} else {
-			mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] = 1;
-			elementsCount++;
+			if (mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] != 1) {
+				mass[(int)camera.getBeforePlayerPosition().x][(int)camera.getBeforePlayerPosition().y][(int)camera.getBeforePlayerPosition().z] = 1;
+				elementsCount++;
+			}
 		}
+		std::cout << "Mouse  " << camera.getBeforePlayerPosition().x << " " << camera.getBeforePlayerPosition().y << " " << camera.getBeforePlayerPosition().z << std::endl;
+		std::cout << "Count  " << elementsCount << std::endl;
 	}
 }
 
@@ -148,6 +153,17 @@ bool SampleApp::init(void) {
 			}
 
 	bindSkybox();
+
+	std::string texture_p = "../../../dv_project/data/box.dds";
+#if WIN32
+	texture_p = "C:/Users/Mark/Desktop/dv_project/data/box.dds";
+#endif
+	if (auto load_t_r = OGLAppFramework::loadTexFromFileAndCreateTO(texture_p)) {
+		tex_handle = load_t_r.value();
+	}
+	else {
+		return false;
+	}
 
 	gl::GLfloat vertices_cube[] = {
 		-0.5f, 0.5f, -0.5f,		1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
@@ -244,10 +260,15 @@ bool SampleApp::frame(float delta_time) {
 	camera.update(deltaTime, mass);
 	
 	//objects
+	// uaktywnienie pierwszego slotu tekstur
+	gl::glActiveTexture(gl::GL_TEXTURE0);
+	// zbindowanie tekstury do aktywnego slotu
+	gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
+
 	if (isCube) {
-		drawObjects(&tex_handle, &vao_cube_handle, 36);
+		drawObjects(&vao_cube_handle, 36);
 	} else {
-		drawObjects(&tex_handle, &vao_piramide_handle, 18);
+		drawObjects(&vao_piramide_handle, 18);
 	}
 	
 	//skybox
@@ -256,16 +277,12 @@ bool SampleApp::frame(float delta_time) {
 	return true;
 }
 
-void SampleApp::drawObjects(gl::GLuint *texture_handle, gl::GLuint *vao, gl::GLsizei size) {
+void SampleApp::drawObjects(gl::GLuint *vao, gl::GLsizei size) {
 	// ustawienie programu, ktory bedzie uzywany podczas rysowania
 	shader.use();
 
 	// zbindowanie VAO modelu, ktorego bedziemy renderowac
 	gl::glBindVertexArray(*vao);
-	// uaktywnienie pierwszego slotu tekstur
-	gl::glActiveTexture(gl::GL_TEXTURE0);
-	// zbindowanie tekstury do aktywnego slotu
-	gl::glBindTexture(gl::GL_TEXTURE_2D, *texture_handle);
 
 	std::array<ModelMatrices, 1000u> array;
 
@@ -299,16 +316,6 @@ void SampleApp::bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::G
 	fs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_lights_fs.glsl";
 #endif
 	shader = Shader(vs_path, fs_path);
-	std::string texture_p = "../../../dv_project/data/box.dds";
-#if WIN32
-	texture_p = "C:/Users/Mark/Desktop/dv_project/data/box.dds";
-#endif
-	if (auto load_t_r = OGLAppFramework::loadTexFromFileAndCreateTO(texture_p)) {
-		tex_handle = load_t_r.value();
-	}
-	else {
-		return;
-	}
 
 	// ustawienie informacji o lokalizacji atrybutu pozycji w vs (musi sie zgadzac z tym co mamy w VS!!!)
 	const gl::GLuint vertex_position_loction = 0u;
