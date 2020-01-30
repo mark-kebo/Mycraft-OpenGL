@@ -1,7 +1,8 @@
 #pragma once
 
 #include "libs.h"
-
+#include "camera.h"
+#include "shader.h"
 
 class SampleApp : public OGLAppFramework::OGLApplication
 {
@@ -9,9 +10,11 @@ class SampleApp : public OGLAppFramework::OGLApplication
 	gl::GLuint vbo_cube_handle;
 	gl::GLuint vao_piramide_handle;
 	gl::GLuint vbo_piramide_handle;
-
+	gl::GLuint vao_piramide_litle_handle;
+	gl::GLuint vbo_piramide_litle_handle;
 	gl::GLuint tex_so;
 	gl::GLuint tex_handle;
+	gl::GLuint tex_piramide_handle;
     gl::GLuint index_buffer_handle;
     gl::GLuint ubo_mvp_matrix_handle;
 	gl::GLuint ubo_intensity_handle;
@@ -19,6 +22,7 @@ class SampleApp : public OGLAppFramework::OGLApplication
 	gl::GLuint ubo_point_light;
 	gl::GLuint ubo_camera_position;
 	gl::GLuint ubo_material;
+	gl::GLuint ubo_option;
 
 	gl::GLuint tex_handle_sky;
 	gl::GLuint index_buffer_handle_sky;
@@ -31,8 +35,8 @@ class SampleApp : public OGLAppFramework::OGLApplication
 public:
     SampleApp();
     virtual ~SampleApp() override;
-	void drawObjects(gl::GLuint *vao, gl::GLsizei size);
-	void bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao);
+	void drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights, bool isUseTexture, Shader *shader);
+	void bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao, Shader *shader);
 	void bindSkybox();
 	void drawSkybox();
     // metoda wywolywana podczas zmiany rozmiaru okna

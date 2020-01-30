@@ -44,7 +44,7 @@ namespace OGLAppFramework
                     glfwSwapInterval(1);
 
                     // ustawienie callback-a po każdej funkcji OGL, tak aby wywolywana byla funkcja glGetError, sprawdzajaca czy nie wystapil jakis blad
-                    glbinding::setCallbackMaskExcept(glbinding::CallbackMask::After | glbinding::CallbackMask::ParametersAndReturnValue, {"glGetError"});
+                    //glbinding::setCallbackMaskExcept(glbinding::CallbackMask::After | glbinding::CallbackMask::ParametersAndReturnValue, {"glGetError"});
                     glbinding::setAfterCallback([log](const glbinding::FunctionCall& call) {
                         const auto error = gl::glGetError();
                         if(error != gl::GL_NO_ERROR)
