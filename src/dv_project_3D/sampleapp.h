@@ -35,7 +35,6 @@ public:
 	void bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao);
 	void bindSkybox();
 	void drawSkybox();
-	unsigned int loadCubemap(std::string faces[]);
     // metoda wywolywana podczas zmiany rozmiaru okna
     virtual void reshapeCallback(std::uint16_t width, std::uint16_t height) override;
     // metoda wywolywana podczas wcisniecia przycisku

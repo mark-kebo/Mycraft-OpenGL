@@ -23,7 +23,7 @@ namespace OGLAppFramework
         static void glfwMouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
     private:
-        GLFWwindow *window_ptr_;
+        GLFWwindow* window_ptr_;
         const bool log_;
 
     private:
@@ -50,4 +50,4 @@ namespace OGLAppFramework
         // metoda wywolywana przy zamknieciu aplikacji
         virtual void release() = 0;
     };
-}
+}  // namespace OGLAppFramework

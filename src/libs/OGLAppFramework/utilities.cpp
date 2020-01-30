@@ -5,15 +5,15 @@
 namespace OGLAppFramework
 {
     // funkcja wczytujaca zawartosc pliku
-    std::string loadFile(const std::string &file_path)
+    std::string loadFile(const std::string& file_path)
     {
         std::ifstream file(file_path, std::ios::in | std::ios::binary);
-        if (file)
+        if(file)
         {
             std::ostringstream contents;
             contents << file.rdbuf();
             file.close();
-            return(contents.str());
+            return (contents.str());
         }
         return {};
     }
@@ -21,12 +21,12 @@ namespace OGLAppFramework
     // funkcja kompilujaca shader
     // przyjmuje na wejscie kod shader-a i informacje o rodzaju shader-a
     // w przypadku powodzenia kompilacji zwraca uchwyt (handle) do skompilowanego shader-a
-    std::optional<gl::GLuint> createAndCompileShader(const std::string &shader_source, gl::GLenum shader_type)
+    std::optional<gl::GLuint> createAndCompileShader(const std::string& shader_source, gl::GLenum shader_type)
     {
         if(shader_source.length() > 0u)
         {
             gl::GLuint shader = gl::glCreateShader(shader_type);
-            const char *shader_source_ptr = shader_source.c_str();
+            const char* shader_source_ptr = shader_source.c_str();
             gl::glShaderSource(shader, 1, &shader_source_ptr, nullptr);
             gl::glCompileShader(shader);
             gl::GLint is_compiled = 0;
@@ -48,15 +48,12 @@ namespace OGLAppFramework
         return {};
     }
 
-    std::optional<gl::GLuint> createProgram(const std::string &vs_source_path, const std::string &fs_source_path)
+    std::optional<gl::GLuint> createProgram(const std::string& vs_source_path, const std::string& fs_source_path)
     {
         std::string vs_source = loadFile(vs_source_path);
         std::string fs_source = loadFile(fs_source_path);
 
-        if(vs_source.length() == 0u || fs_source.length() == 0u)
-        {
-            std::cerr << "Error - can't load file: " << (vs_source.length() == 0u ? vs_source_path : fs_source_path) << std::endl;
-        }
+        if(vs_source.length() == 0u || fs_source.length() == 0u) { std::cerr << "Error - can't load file: " << (vs_source.length() == 0u ? vs_source_path : fs_source_path) << std::endl; }
 
         if(auto compile_vs_result = createAndCompileShader(loadFile(vs_source_path), gl::GL_VERTEX_SHADER))
         {
@@ -94,12 +91,11 @@ namespace OGLAppFramework
         return {};
     }
 
-    std::optional<gl::GLuint> loadTexFromFileAndCreateTO(const std::string &file_path)
+    std::optional<gl::GLuint> loadTexFromFileAndCreateTO(const std::string& file_path)
     {
         gli::texture texture = gli::load(file_path);
 
-        if(texture.empty())
-            return {};
+        if(texture.empty()) return {};
 
         gli::gl GL(gli::gl::PROFILE_GL33);
         gli::gl::format const format = GL.translate(texture.format(), texture.swizzles());
@@ -120,112 +116,67 @@ namespace OGLAppFramework
 
         switch(texture.target())
         {
-        case gli::TARGET_1D:
-            gl::glTexStorage1D(
-                target, static_cast<gl::GLint>(texture.levels()), static_cast<gl::GLenum>(format.Internal), extent.x);
-            break;
-        case gli::TARGET_1D_ARRAY:
-        case gli::TARGET_2D:
-        case gli::TARGET_CUBE:
-            gl::glTexStorage2D(
-                target, static_cast<gl::GLint>(texture.levels()), static_cast<gl::GLenum>(format.Internal),
-                extent.x, texture.target() == gli::TARGET_2D ? extent.y : face_total);
-            break;
-        case gli::TARGET_2D_ARRAY:
-        case gli::TARGET_3D:
-        case gli::TARGET_CUBE_ARRAY:
-            gl::glTexStorage3D(
-                target, static_cast<gl::GLint>(texture.levels()), static_cast<gl::GLenum>(format.Internal),
-                extent.x, extent.y,
-                texture.target() == gli::TARGET_3D ? extent.z : face_total);
-            break;
-        default:
-            assert(0);
-            break;
-        }
-
-        for(std::size_t layer = 0; layer < texture.layers(); ++layer)
-        for(std::size_t face = 0; face < texture.faces(); ++face)
-        for(std::size_t level = 0; level < texture.levels(); ++level)
-        {
-            gl::GLsizei const layer_GL = static_cast<gl::GLsizei>(layer);
-            glm::tvec3<gl::GLsizei> extent(texture.extent(level));
-            target = gli::is_target_cube(texture.target())
-                ? static_cast<gl::GLenum>(gl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + face)
-                : target;
-
-            switch(texture.target())
-            {
             case gli::TARGET_1D:
-                if(gli::is_compressed(texture.format()))
-                    gl::glCompressedTexSubImage1D(
-                        target, static_cast<gl::GLint>(level), 0, extent.x,
-                        static_cast<gl::GLenum>(format.Internal), static_cast<gl::GLsizei>(texture.size(level)),
-                        texture.data(layer, face, level));
-                else
-                    gl::glTexSubImage1D(
-                        target, static_cast<gl::GLint>(level), 0, extent.x,
-                        static_cast<gl::GLenum>(format.External), static_cast<gl::GLenum>(format.Type),
-                        texture.data(layer, face, level));
+                gl::glTexStorage1D(target, static_cast<gl::GLint>(texture.levels()), static_cast<gl::GLenum>(format.Internal), extent.x);
                 break;
             case gli::TARGET_1D_ARRAY:
             case gli::TARGET_2D:
             case gli::TARGET_CUBE:
-                if(gli::is_compressed(texture.format()))
-                    gl::glCompressedTexSubImage2D(
-                        target, static_cast<gl::GLint>(level),
-                        0, 0,
-                        extent.x,
-                        texture.target() == gli::TARGET_1D_ARRAY ? layer_GL : extent.y,
-                        static_cast<gl::GLenum>(format.Internal), static_cast<gl::GLsizei>(texture.size(level)),
-                        texture.data(layer, face, level));
-                else
-                    gl::glTexSubImage2D(
-                        target, static_cast<gl::GLint>(level),
-                        0, 0,
-                        extent.x,
-                        texture.target() == gli::TARGET_1D_ARRAY ? layer_GL : extent.y,
-                        static_cast<gl::GLenum>(format.External), static_cast<gl::GLenum>(format.Type),
-                        texture.data(layer, face, level));
+                gl::glTexStorage2D(target, static_cast<gl::GLint>(texture.levels()), static_cast<gl::GLenum>(format.Internal), extent.x, texture.target() != gli::TARGET_1D_ARRAY ? extent.y : face_total);
                 break;
             case gli::TARGET_2D_ARRAY:
             case gli::TARGET_3D:
             case gli::TARGET_CUBE_ARRAY:
-                if(gli::is_compressed(texture.format()))
-                    gl::glCompressedTexSubImage3D(
-                        target, static_cast<gl::GLint>(level),
-                        0, 0, 0,
-                        extent.x, extent.y,
-                        texture.target() == gli::TARGET_3D ? extent.z : layer_GL,
-                        static_cast<gl::GLenum>(format.Internal), static_cast<gl::GLsizei>(texture.size(level)),
-                        texture.data(layer, face, level));
-                else
-                    gl::glTexSubImage3D(
-                        target, static_cast<gl::GLint>(level),
-                        0, 0, 0,
-                        extent.x, extent.y,
-                        texture.target() == gli::TARGET_3D ? extent.z : layer_GL,
-                        static_cast<gl::GLenum>(format.External), static_cast<gl::GLenum>(format.Type),
-                        texture.data(layer, face, level));
+                gl::glTexStorage3D(target, static_cast<gl::GLint>(texture.levels()), static_cast<gl::GLenum>(format.Internal), extent.x, extent.y, texture.target() == gli::TARGET_3D ? extent.z : face_total);
                 break;
-            default: assert(0); break;
-            }
+            default:
+                assert(0);
+                break;
         }
+
+        for(std::size_t layer = 0; layer < texture.layers(); ++layer)
+            for(std::size_t face = 0; face < texture.faces(); ++face)
+                for(std::size_t level = 0; level < texture.levels(); ++level)
+                {
+                    gl::GLsizei const layer_GL = static_cast<gl::GLsizei>(layer);
+                    glm::tvec3<gl::GLsizei> extent(texture.extent(level));
+                    target = gli::is_target_cube(texture.target()) ? static_cast<gl::GLenum>(gl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + face) : target;
+
+                    switch(texture.target())
+                    {
+                        case gli::TARGET_1D:
+                            if(gli::is_compressed(texture.format()))
+                                gl::glCompressedTexSubImage1D(target, static_cast<gl::GLint>(level), 0, extent.x, static_cast<gl::GLenum>(format.Internal), static_cast<gl::GLsizei>(texture.size(level)), texture.data(layer, face, level));
+                            else
+                                gl::glTexSubImage1D(target, static_cast<gl::GLint>(level), 0, extent.x, static_cast<gl::GLenum>(format.External), static_cast<gl::GLenum>(format.Type), texture.data(layer, face, level));
+                            break;
+                        case gli::TARGET_1D_ARRAY:
+                        case gli::TARGET_2D:
+                        case gli::TARGET_CUBE:
+                            if(gli::is_compressed(texture.format()))
+                                gl::glCompressedTexSubImage2D(target, static_cast<gl::GLint>(level), 0, 0, extent.x, texture.target() == gli::TARGET_1D_ARRAY ? layer_GL : extent.y, static_cast<gl::GLenum>(format.Internal), static_cast<gl::GLsizei>(texture.size(level)), texture.data(layer, face, level));
+                            else
+                                gl::glTexSubImage2D(target, static_cast<gl::GLint>(level), 0, 0, extent.x, texture.target() == gli::TARGET_1D_ARRAY ? layer_GL : extent.y, static_cast<gl::GLenum>(format.External), static_cast<gl::GLenum>(format.Type), texture.data(layer, face, level));
+                            break;
+                        case gli::TARGET_2D_ARRAY:
+                        case gli::TARGET_3D:
+                        case gli::TARGET_CUBE_ARRAY:
+                            if(gli::is_compressed(texture.format()))
+                                gl::glCompressedTexSubImage3D(target, static_cast<gl::GLint>(level), 0, 0, 0, extent.x, extent.y, texture.target() == gli::TARGET_3D ? extent.z : layer_GL, static_cast<gl::GLenum>(format.Internal), static_cast<gl::GLsizei>(texture.size(level)), texture.data(layer, face, level));
+                            else
+                                gl::glTexSubImage3D(target, static_cast<gl::GLint>(level), 0, 0, 0, extent.x, extent.y, texture.target() == gli::TARGET_3D ? extent.z : layer_GL, static_cast<gl::GLenum>(format.External), static_cast<gl::GLenum>(format.Type), texture.data(layer, face, level));
+                            break;
+                        default:
+                            assert(0);
+                            break;
+                    }
+                }
         return texture_handle;
     }
 
-    glm::mat4x4 scaleMatrix(float x, float y, float z)
-    {
-        return glm::scale(glm::mat4x4(1.f), glm::vec3(x, y, z));
-    }
+    glm::mat4x4 scaleMatrix(float x, float y, float z) { return glm::scale(glm::mat4x4(1.f), glm::vec3(x, y, z)); }
 
-    glm::mat4x4 rotationMatrix(float angle, const glm::vec3 &axis)
-    {
-        return glm::rotate(glm::mat4x4(1.f), angle, axis);
-    }
+    glm::mat4x4 rotationMatrix(float angle, const glm::vec3& axis) { return glm::rotate(glm::mat4x4(1.f), angle, axis); }
 
-    glm::mat4x4 translationMatrix(const glm::vec3 &translation)
-    {
-        return glm::translate(glm::mat4x4(1.f), translation);
-    }
-}
+    glm::mat4x4 translationMatrix(const glm::vec3& translation) { return glm::translate(glm::mat4x4(1.f), translation); }
+}  // namespace OGLAppFramework

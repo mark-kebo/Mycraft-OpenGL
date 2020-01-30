@@ -436,28 +436,6 @@ void SampleApp::bindSkybox() {
 	shader_sky.bindVBOandIBtoVAO(vertex_position_loction, &index_buffer_handle_sky);
 	shader_sky.unbindVAOandVBO();
 
-	// load textures
-	// -------------
-	
-	std::string faces[6] = {
-		"../../../dv_project/data/skybox/stormydays_ft.tga",
-		"../../../dv_project/data/skybox/stormydays_bk.tga",
-		"../../../dv_project/data/skybox/stormydays_up.tga",
-		"../../../dv_project/data/skybox/stormydays_dn.tga",
-		"../../../dv_project/data/skybox/stormydays_rt.tga",
-		"../../../dv_project/data/skybox/stormydays_lf.tga"
-	};
-#if WIN32
-	faces[0] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_ft.tga";
-	faces[1] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_bk.tga";
-	faces[2] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_up.tga";
-	faces[3] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_dn.tga";
-	faces[4] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_rt.tga";
-	faces[5] = "C:/Users/Mark/Desktop/dv_project/data/skybox/stormydays_lf.tga";
-#endif
-	tex_handle_sky = loadCubemap(faces);
-	
-	/*
 	std::string texture_p = "../../../dv_project/data/SkyDawn.dds";
 #if WIN32
 	texture_p = "C:/Users/Mark/Desktop/dv_project/data/SkyDawn.dds";
@@ -468,8 +446,7 @@ void SampleApp::bindSkybox() {
 	else {
 		return;
 	}
-	*/
-
+	
 	glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
 	std::array<glm::mat4x4, 2u> matrices = { projection_matrix, view };
 	shader_sky.createBuffer(matrices, ub_skybox_index, &ubo_skybox);
@@ -489,39 +466,6 @@ void SampleApp::drawSkybox() {
 	gl::glDrawElements(gl::GL_TRIANGLES, 36, gl::GL_UNSIGNED_SHORT, nullptr);
 	gl::glDepthFunc(gl::GL_LESS); // set depth function back to default
 	gl::glBindVertexArray(0);
-}
-
-unsigned int SampleApp::loadCubemap(std::string faces[])
-{
-	unsigned int textureID;
-	//gl::glCreateTextures(gl::GL_TEXTURE_CUBE_MAP, 1, &textureID);
-	gl::glGenTextures(1, &textureID);
-	gl::glBindTexture(gl::GL_TEXTURE_CUBE_MAP, textureID);
-
-	int width, height, nrChannels;
-	for (unsigned int i = 0; i < 6; i++)
-	{
-		unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-		if (data)
-		{
-			gl::glTexImage2D(gl::GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl::GL_RGB,
-				width, height, 0, gl::GL_RGB, gl::GL_UNSIGNED_BYTE, data);
-			stbi_image_free(data);
-		}
-		else
-		{
-			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
-			stbi_image_free(data);
-		}
-	}
-
-	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR);
-	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR);
-	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_WRAP_S, gl::GL_CLAMP_TO_EDGE);
-	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_WRAP_T, gl::GL_CLAMP_TO_EDGE);
-	gl::glTexParameteri(gl::GL_TEXTURE_CUBE_MAP, gl::GL_TEXTURE_WRAP_R, gl::GL_CLAMP_TO_EDGE);
-
-	return textureID;
 }
 
 void SampleApp::release(void) {

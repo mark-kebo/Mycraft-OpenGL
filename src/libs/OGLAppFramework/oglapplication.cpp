@@ -44,9 +44,8 @@ namespace OGLAppFramework
                     glfwSwapInterval(1);
 
                     // ustawienie callback-a po każdej funkcji OGL, tak aby wywolywana byla funkcja glGetError, sprawdzajaca czy nie wystapil jakis blad
-                   // glbinding::setCallbackMaskExcept(glbinding::CallbackMask::After | glbinding::CallbackMask::ParametersAndReturnValue, { "glGetError" });
-                    glbinding::setAfterCallback([log](const glbinding::FunctionCall &call)
-                    {
+                    glbinding::setCallbackMaskExcept(glbinding::CallbackMask::After | glbinding::CallbackMask::ParametersAndReturnValue, {"glGetError"});
+                    glbinding::setAfterCallback([log](const glbinding::FunctionCall& call) {
                         const auto error = gl::glGetError();
                         if(error != gl::GL_NO_ERROR)
                         {
@@ -55,13 +54,11 @@ namespace OGLAppFramework
                             for(std::size_t i = 0u; i < call.parameters.size(); ++i)
                             {
                                 std::cerr << call.parameters[i].get();
-                                if(i < call.parameters.size() - 1)
-                                    std::cerr << ", ";
+                                if(i < call.parameters.size() - 1) std::cerr << ", ";
                             }
                             std::cerr << ");";
 
-                            if(call.returnValue)
-                                std::cerr << " -> " << call.returnValue.get();
+                            if(call.returnValue) std::cerr << " -> " << call.returnValue.get();
                             std::cerr << std::endl;
                             std::cerr << "Error: " << error << std::endl;
                             throw std::runtime_error(std::to_string(static_cast<int>(error)));
@@ -119,46 +116,28 @@ namespace OGLAppFramework
         releaseLibs();
     }
 
-    void OGLApplication::glfwErrorCallback(int error, const char *description)
+    void OGLApplication::glfwErrorCallback(int error, const char* description) { std::cerr << "GLFW error - " << std::hex << error << " - " << description << std::endl; }
+
+    void OGLApplication::glfwReshapeCallback(GLFWwindow* window, int width, int height)
     {
-        std::cerr << "GLFW error - " << std::hex << error << " - " << description << std::endl;
+        if(auto app_ptr = reinterpret_cast<OGLApplication*>(glfwGetWindowUserPointer(window))) { app_ptr->reshapeCallback(width, height); }
     }
 
-    void OGLApplication::glfwReshapeCallback(GLFWwindow *window, int width, int height)
+    void OGLApplication::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
-        if(auto app_ptr = reinterpret_cast<OGLApplication*>(glfwGetWindowUserPointer(window)))
-        {
-            app_ptr->reshapeCallback(width, height);
-        }
+        if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) { glfwSetWindowShouldClose(window, true); }
+
+        if(auto app_ptr = reinterpret_cast<OGLApplication*>(glfwGetWindowUserPointer(window))) { app_ptr->keyCallback(key, scancode, action, mods); }
     }
 
-    void OGLApplication::glfwKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+    void OGLApplication::glfwCursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     {
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        {
-            glfwSetWindowShouldClose(window, true);
-        }
-
-        if(auto app_ptr = reinterpret_cast<OGLApplication*>(glfwGetWindowUserPointer(window)))
-        {
-            app_ptr->keyCallback(key, scancode, action, mods);
-        }
+        if(auto app_ptr = reinterpret_cast<OGLApplication*>(glfwGetWindowUserPointer(window))) { app_ptr->cursorPosCallback(xpos, ypos); }
     }
 
-    void OGLApplication::glfwCursorPosCallback(GLFWwindow *window, double xpos, double ypos)
+    void OGLApplication::glfwMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     {
-        if(auto app_ptr = reinterpret_cast<OGLApplication*>(glfwGetWindowUserPointer(window)))
-        {
-            app_ptr->cursorPosCallback(xpos, ypos);
-        }
-    }
-
-    void OGLApplication::glfwMouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
-    {
-        if(auto app_ptr = reinterpret_cast<OGLApplication*>(glfwGetWindowUserPointer(window)))
-        {
-            app_ptr->mouseButtonCallback(button, action, mods);
-        }
+        if(auto app_ptr = reinterpret_cast<OGLApplication*>(glfwGetWindowUserPointer(window))) { app_ptr->mouseButtonCallback(button, action, mods); }
     }
 
     void OGLApplication::releaseLibs()
@@ -180,7 +159,8 @@ namespace OGLAppFramework
 
         if(log_) std::cout << "OGLApplication - init" << std::endl;
 
-        try{
+        try
+        {
             // wywolanie funkcji init
             if(init())
             {
@@ -208,7 +188,7 @@ namespace OGLAppFramework
                 }
             }
         }
-        catch(const std::exception &e)
+        catch(const std::exception& e)
         {
             std::cout << "Exception caught: " << e.what() << std::endl;
         }
@@ -222,13 +202,7 @@ namespace OGLAppFramework
         release();
     }
 
-    void OGLApplication::disableCursor()
-    {
-        glfwSetInputMode(window_ptr_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
+    void OGLApplication::disableCursor() { glfwSetInputMode(window_ptr_, GLFW_CURSOR, GLFW_CURSOR_DISABLED); }
 
-    void OGLApplication::enableCursor()
-    {
-        glfwSetInputMode(window_ptr_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-}
+    void OGLApplication::enableCursor() { glfwSetInputMode(window_ptr_, GLFW_CURSOR, GLFW_CURSOR_NORMAL); }
+}  // namespace OGLAppFramework
