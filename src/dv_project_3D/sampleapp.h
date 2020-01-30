@@ -8,6 +8,8 @@ class SampleApp : public OGLAppFramework::OGLApplication
 {
 	gl::GLuint vao_cube_handle;
 	gl::GLuint vbo_cube_handle;
+	gl::GLuint vao_small_cube_handle;
+	gl::GLuint vbo_small_cube_handle;
 	gl::GLuint vao_piramide_handle;
 	gl::GLuint vbo_piramide_handle;
 	gl::GLuint vao_piramide_litle_handle;

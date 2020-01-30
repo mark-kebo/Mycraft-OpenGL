@@ -2,7 +2,7 @@
 
 using namespace OGLAppFramework;
 
-enum ObjectType { piramide, litlePiramide, cube };
+enum ObjectType { piramide, litlePiramide, cube, smallCube };
 
 // settings
 float SCR_WIDTH = 1366;
@@ -11,7 +11,7 @@ float SCR_HEIGHT = 768;
 //scene
 bool mass[100][100][100];
 
-ObjectType objectType = cube;
+ObjectType objectType = smallCube;
 
 // camera
 Camera camera(glm::vec3(50.0f, 5.0f, 50.0f));
@@ -25,6 +25,7 @@ float deltaTime = 0.0f;
 
 //shaders
 Shader shader_cube = Shader();
+Shader shader_small_cube = Shader();
 Shader shader_piramide = Shader();
 Shader shader_litle_piramide = Shader();
 Shader shader_sky = Shader();
@@ -62,7 +63,8 @@ SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, 
 vbo_cube_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u), vao_piramide_litle_handle(0u), vbo_piramide_litle_handle(0u),
 vao_cube_handle(0u), ubo_mvp_matrix_handle(0u), ubo_intensity_handle(0u), tex_handle(0u), vao_piramide_handle(0u),
 tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u), index_buffer_handle_sky(0u), vbo_piramide_handle(0u), ubo_option(0u),
-ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u), ubo_skybox(0u), tex_piramide_handle(0u) {
+ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u), ubo_skybox(0u), tex_piramide_handle(0u),
+vbo_small_cube_handle(0u), vao_small_cube_handle(0u) {
 }
 
 SampleApp::~SampleApp() {
@@ -90,6 +92,9 @@ void SampleApp::keyCallback(int key, int scancode, int action, int mods) {
 		camera.ProcessKeyboard(LEFT, deltaTime);
 	if (key == GLFW_KEY_P && (action == 0 || action == 2)) {
 		switch (objectType) {
+		case(smallCube):
+			objectType = cube;
+			break;
 		case(cube):
 			objectType = piramide;
 			break;
@@ -97,7 +102,7 @@ void SampleApp::keyCallback(int key, int scancode, int action, int mods) {
 			objectType = litlePiramide;
 			break;
 		case(litlePiramide):
-			objectType = cube;
+			objectType = smallCube;
 			break;
 		}
 	}
@@ -235,6 +240,51 @@ bool SampleApp::init(void) {
 	gl::GLushort indices_cube[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
 	19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 };
 	bindObject(vertices_cube, indices_cube, &vbo_cube_handle, &vao_cube_handle, &shader_cube);
+
+	gl::GLfloat vertices_small_cube[] = {
+	-0.5f, 0.25f, -0.5f,	1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
+	 0.5f, 0.25f, -0.5f,	1.0f,  1.0f,	0.0f,  0.0f, -1.0f,
+	 0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	0.0f,  0.0f, -1.0f,
+	 0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	0.0f,  0.0f, -1.0f,
+	-0.5f, -0.5f, -0.5f,	1.0f,  1.0f,	0.0f,  0.0f, -1.0f,
+	-0.5f, 0.25f, -0.5f,	1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
+
+	-0.5f, -0.5f,  0.5f,	1.0f,  0.5f,	0.0f,  0.0f,  1.0f,
+	 0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	0.0f,  0.0f,  1.0f,
+	 0.5f,  0.25f,  0.5f,	0.5f,  1.0f,	0.0f,  0.0f,  1.0f,
+	 0.5f,  0.25f,  0.5f,	0.5f,  1.0f,	0.0f,  0.0f,  1.0f,
+	-0.5f,  0.25f,  0.5f,	1.0f,  1.0f,	0.0f,  0.0f,  1.0f,
+	-0.5f, -0.5f,  0.5f,	1.0f,  0.5f,	0.0f,  0.0f,  1.0f,
+
+	-0.5f,  0.25f,  0.5f,	1.0f,  0.5f,	-1.0f,  0.0f,  0.0f,
+	-0.5f,  0.25f, -0.5f,	1.0f,  1.0f,	-1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	-1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f,	0.5f,  1.0f,	-1.0f,  0.0f,  0.0f,
+	-0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	-1.0f,  0.0f,  0.0f,
+	-0.5f,  0.25f,  0.5f,	1.0f,  0.5f,	-1.0f,  0.0f,  0.0f,
+
+	 0.5f,  0.25f,  -0.5f,	1.0f,  0.5f,	1.0f,  0.0f,  0.0f,
+	 0.5f,  0.25f,   0.5f,	1.0f,  1.0f,	1.0f,  0.0f,  0.0f,
+	 0.5f, -0.5f,   0.5f,	0.5f,  1.0f,	1.0f,  0.0f,  0.0f,
+	 0.5f, -0.5f,   0.5f,	0.5f,  1.0f,	1.0f,  0.0f,  0.0f,
+	 0.5f, -0.5f,  -0.5f,	1.0f,  1.0f,	1.0f,  0.0f,  0.0f,
+	 0.5f,  0.25f,  -0.5f,	1.0f,  0.5f,	1.0f,  0.0f,  0.0f,
+
+	-0.5f, -0.5f, -0.5f,	1.0f,  0.5f,	0.0f, -1.0f,  0.0f,
+	 0.5f, -0.5f, -0.5f,	1.0f,  1.0f,	0.0f, -1.0f,  0.0f,
+	 0.5f, -0.5f,  0.5f,	0.5f,  1.0f,	0.0f, -1.0f,  0.0f,
+	 0.5f, -0.5f,  0.5f,	0.5f,  1.0f,	0.0f, -1.0f,  0.0f,
+	-0.5f, -0.5f,  0.5f,	1.0f,  1.0f,	0.0f, -1.0f,  0.0f,
+	-0.5f, -0.5f, -0.5f,	1.0f,  0.5f,	0.0f, -1.0f,  0.0f,
+
+	0.5f,  0.25f, -0.5f,	0.5f,  0.5f,	0.0f,  1.0f,  0.0f,
+   -0.5f,  0.25f, -0.5f,	0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
+   -0.5f,  0.25f,  0.5f,	0.0f,  1.0f,	0.0f,  1.0f,  0.0f,
+   -0.5f,  0.25f,  0.5f,	0.0f,  1.0f,	0.0f,  1.0f,  0.0f,
+	0.5f,  0.25f,  0.5f,	0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
+	0.5f,  0.25f, -0.5f,	0.5f,  0.5f,	0.0f,  1.0f,  0.0f
+	};
+	bindObject(vertices_small_cube, indices_cube, &vbo_small_cube_handle, &vao_small_cube_handle, &shader_small_cube);
 	
 	gl::GLfloat vertices_piramide[] = {
 		// Triangle 1
@@ -294,11 +344,14 @@ bool SampleApp::frame(float delta_time) {
 	camera.update(deltaTime, mass);
 
 	switch (objectType) {
-	case(cube):
+	case(smallCube):
 		// uaktywnienie pierwszego slotu tekstur
 		gl::glActiveTexture(gl::GL_TEXTURE0);
 		// zbindowanie tekstury do aktywnego slotu
 		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
+		drawObjects(&vao_small_cube_handle, 36, true, true, &shader_small_cube);
+		break;
+	case(cube):
 		drawObjects(&vao_cube_handle, 36, true, true, &shader_cube);
 		break;
 	case(piramide):
@@ -332,7 +385,11 @@ void SampleApp::drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights,
 			for (int z = 0; z < 100; z++) {
 				if (!mass[x][y][z]) continue;
 					ModelMatrices matrices = ModelMatrices();
-					matrices.model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
+					if (objectType == smallCube) {
+						matrices.model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y - y * 0.25, 0.0f + z));
+					} else {
+						matrices.model_matrix = translationMatrix(glm::vec3(0.0f + x, 0.0f + y, 0.0f + z));
+					}
 					matrices.mvp_matrix = projection_matrix * camera.GetViewMatrix() * matrices.model_matrix;
 					array[index] = matrices;
 					index++;
@@ -641,6 +698,24 @@ void SampleApp::release(void) {
         vbo_cube_handle = 0u;
     }
 
+	// odbindowanie VAO
+	gl::glBindVertexArray(0);
+	if (vao_small_cube_handle)
+	{
+		// usuniecie VAO
+		gl::glDeleteVertexArrays(1, &vao_small_cube_handle);
+		vao_small_cube_handle = 0u;
+	}
+
+	// odbindowanie VBO
+	gl::glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
+	if (vbo_small_cube_handle)
+	{
+		// usuniecie VBO
+		gl::glDeleteBuffers(1, &vbo_small_cube_handle);
+		vbo_small_cube_handle = 0u;
+	}
+
     // odbindowanie IB
     gl::glBindBuffer(gl::GL_ELEMENT_ARRAY_BUFFER, 0);
     if (index_buffer_handle)
@@ -651,6 +726,7 @@ void SampleApp::release(void) {
     }
 
 	shader_cube.deleteProgram();
+	shader_small_cube.deleteProgram();
 	shader_piramide.deleteProgram();
 	shader_litle_piramide.deleteProgram();
 	shader_sky.deleteProgram();
