@@ -37,8 +37,8 @@ class SampleApp : public OGLAppFramework::OGLApplication
 public:
     SampleApp();
     virtual ~SampleApp() override;
-	void drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights, bool isUseTexture, Shader *shader);
-	void bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao, Shader *shader);
+	void drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights, bool isUseTexture);
+	void bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao);
 	void bindSkybox();
 	void drawSkybox();
     // metoda wywolywana podczas zmiany rozmiaru okna

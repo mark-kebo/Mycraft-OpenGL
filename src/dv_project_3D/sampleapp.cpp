@@ -24,10 +24,7 @@ int elementsCount = 0;
 float deltaTime = 0.0f;
 
 //shaders
-Shader shader_cube = Shader();
-Shader shader_small_cube = Shader();
-Shader shader_piramide = Shader();
-Shader shader_litle_piramide = Shader();
+Shader shader_object = Shader();
 Shader shader_sky = Shader();
 
 struct TextMaterial {
@@ -239,7 +236,7 @@ bool SampleApp::init(void) {
 	};
 	gl::GLushort indices_cube[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
 	19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 };
-	bindObject(vertices_cube, indices_cube, &vbo_cube_handle, &vao_cube_handle, &shader_cube);
+	bindObject(vertices_cube, indices_cube, &vbo_cube_handle, &vao_cube_handle);
 
 	gl::GLfloat vertices_small_cube[] = {
 	-0.5f, 0.25f, -0.5f,	1.0f,  0.5f,	0.0f,  0.0f, -1.0f,
@@ -284,7 +281,7 @@ bool SampleApp::init(void) {
 	0.5f,  0.25f,  0.5f,	0.5f,  1.0f,	0.0f,  1.0f,  0.0f,
 	0.5f,  0.25f, -0.5f,	0.5f,  0.5f,	0.0f,  1.0f,  0.0f
 	};
-	bindObject(vertices_small_cube, indices_cube, &vbo_small_cube_handle, &vao_small_cube_handle, &shader_small_cube);
+	bindObject(vertices_small_cube, indices_cube, &vbo_small_cube_handle, &vao_small_cube_handle);
 	
 	gl::GLfloat vertices_piramide[] = {
 		// Triangle 1
@@ -313,7 +310,7 @@ bool SampleApp::init(void) {
 				-0.5,0.5,0.5,      0.5,1.0,		0.0,1.0,0.0
 	};
 	gl::GLushort indices_piramide[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
-	bindObject(vertices_piramide, indices_piramide, &vbo_piramide_handle, &vao_piramide_handle, &shader_piramide);
+	bindObject(vertices_piramide, indices_piramide, &vbo_piramide_handle, &vao_piramide_handle);
 
 	gl::GLfloat vertices_piramide_litle[] = {
 		0.5, 0.0, 0.5,        1.0, 1.0,		1.0, 0.0, 1.0,
@@ -323,7 +320,7 @@ bool SampleApp::init(void) {
 		0.0, 0.5, 0.0,		  0.0, 0.0,		0.0, 1.0, 0.0
 	};
 	gl::GLushort indices_piramide_litle[] = { 3, 2, 1,	 3, 1, 0,	3, 0, 4,	0, 1, 4,	1, 2, 4,	2, 3, 4 };
-	bindObject(vertices_piramide_litle, indices_piramide_litle, &vbo_piramide_litle_handle, &vao_piramide_litle_handle, &shader_litle_piramide);
+	bindObject(vertices_piramide_litle, indices_piramide_litle, &vbo_piramide_litle_handle, &vao_piramide_litle_handle);
 
 	// Tworzenie SO
 	gl::glGenSamplers(1, &tex_so);
@@ -349,20 +346,20 @@ bool SampleApp::frame(float delta_time) {
 		gl::glActiveTexture(gl::GL_TEXTURE0);
 		// zbindowanie tekstury do aktywnego slotu
 		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
-		drawObjects(&vao_small_cube_handle, 36, true, true, &shader_small_cube);
+		drawObjects(&vao_small_cube_handle, 36, true, true);
 		break;
 	case(cube):
-		drawObjects(&vao_cube_handle, 36, true, true, &shader_cube);
+		drawObjects(&vao_cube_handle, 36, true, true);
 		break;
 	case(piramide):
 		// uaktywnienie pierwszego slotu tekstur
 		gl::glActiveTexture(gl::GL_TEXTURE0);
 		// zbindowanie tekstury do aktywnego slotu
 		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_piramide_handle);
-		drawObjects(&vao_piramide_handle, 18, true, true, &shader_piramide);
+		drawObjects(&vao_piramide_handle, 18, true, true);
 		break;
 	case(litlePiramide):
-		drawObjects(&vao_piramide_litle_handle, 18, false, false, &shader_litle_piramide);
+		drawObjects(&vao_piramide_litle_handle, 18, false, false);
 		break;
 	}
 	
@@ -372,9 +369,9 @@ bool SampleApp::frame(float delta_time) {
 	return true;
 }
 
-void SampleApp::drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights, bool isUseTexture, Shader *shader) {
+void SampleApp::drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights, bool isUseTexture) {
 	// ustawienie programu, ktory bedzie uzywany podczas rysowania
-	shader->use();
+	shader_object.use();
 	// zbindowanie VAO modelu, ktorego bedziemy renderowac
 	gl::glBindVertexArray(*vao);
 
@@ -398,17 +395,17 @@ void SampleApp::drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights,
 	Option option = Option();
 	option.isHasLights = isHasLights;
 	option.isUseTexture = isUseTexture;
-	shader->sendData(option, ubo_option);
+	shader_object.sendData(option, ubo_option);
 	if (isHasLights)
-		shader->sendData(camera.Position, ubo_camera_position);
-	shader->sendData(array, ubo_mvp_matrix_handle);
+		shader_object.sendData(camera.Position, ubo_camera_position);
+	shader_object.sendData(array, ubo_mvp_matrix_handle);
 
 	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
 	gl::glDrawElementsInstanced(gl::GL_TRIANGLES, size, gl::GL_UNSIGNED_SHORT, nullptr, elementsCount);
 	gl::glBindVertexArray(0);
 }
 
-void SampleApp::bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao, Shader *shader) {
+void SampleApp::bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::GLuint *vbo, gl::GLuint *vao) {
 	std::cout << "Shaders compilation..." << std::endl;
 	// wczytanie z plikow i skompilowanie shaderow oraz utworzenie programu (VS + FS)
 	char* vs_path = "../../../dv_project/shaders/simple_lights_vs.glsl";
@@ -417,7 +414,7 @@ void SampleApp::bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::G
 	vs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_lights_vs.glsl";
 	fs_path = "C:/Users/Mark/Desktop/dv_project/shaders/simple_lights_fs.glsl";
 #endif
-	*shader = Shader(vs_path, fs_path);
+	shader_object = Shader(vs_path, fs_path);
 
 	// ustawienie informacji o lokalizacji atrybutu pozycji w vs (musi sie zgadzac z tym co mamy w VS!!!)
 	const gl::GLuint vertex_position_loction = 0u;
@@ -439,14 +436,14 @@ void SampleApp::bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::G
 
 
 	// ustawienie programu, ktory bedzie uzywany podczas rysowania
-	shader->use();
+	shader_object.use();
 
 	std::cout << "Generating buffers..." << std::endl;
-	shader->createVAO(vao);
-	shader->createVBO(vbo, vertices, 288);
-	shader->createIndexBuffer(indices, 36, &index_buffer_handle);
-	shader->bindVBOandIBtoVAO(vertex_position_loction, vertex_tex_uv_loction, vertex_normal_loction, &index_buffer_handle);
-	shader->unbindVAOandVBO();
+	shader_object.createVAO(vao);
+	shader_object.createVBO(vbo, vertices, 288);
+	shader_object.createIndexBuffer(indices, 36, &index_buffer_handle);
+	shader_object.bindVBOandIBtoVAO(vertex_position_loction, vertex_tex_uv_loction, vertex_normal_loction, &index_buffer_handle);
+	shader_object.unbindVAOandVBO();
 
 	PointLightData lights = PointLightData();
 	PointLight pointLight = PointLight();
@@ -467,12 +464,12 @@ void SampleApp::bindObject(gl::GLfloat vertices[], gl::GLushort indices[], gl::G
 	material.specular_intensity = 1.f;
 	material.specular_power = 1.f;
 
-	shader->createBuffer(ambient_light_color, ub_ambient_light_binding_index, &ubo_ambient_light);
-	shader->createBuffer(lights, ub_point_light_binding_index, &ubo_point_light);
-	shader->createBuffer(material, ub_material_binding_index, &ubo_material);
-	shader->createBuffer(0, ub_additional_data_binding_index, &ubo_camera_position);
-	shader->createBuffer(0, ub_mvp_binding_index, &ubo_mvp_matrix_handle);
-	shader->createBuffer(0, ub_option_binding_index, &ubo_option);
+	shader_object.createBuffer(ambient_light_color, ub_ambient_light_binding_index, &ubo_ambient_light);
+	shader_object.createBuffer(lights, ub_point_light_binding_index, &ubo_point_light);
+	shader_object.createBuffer(material, ub_material_binding_index, &ubo_material);
+	shader_object.createBuffer(0, ub_additional_data_binding_index, &ubo_camera_position);
+	shader_object.createBuffer(0, ub_mvp_binding_index, &ubo_mvp_matrix_handle);
+	shader_object.createBuffer(0, ub_option_binding_index, &ubo_option);
 }
 
 void SampleApp::bindSkybox() {
@@ -725,9 +722,6 @@ void SampleApp::release(void) {
         index_buffer_handle = 0u;
     }
 
-	shader_cube.deleteProgram();
-	shader_small_cube.deleteProgram();
-	shader_piramide.deleteProgram();
-	shader_litle_piramide.deleteProgram();
+	shader_object.deleteProgram();
 	shader_sky.deleteProgram();
 }
