@@ -2,66 +2,15 @@
 
 using namespace OGLAppFramework;
 
-enum ObjectType { piramide, litlePiramide, cube, smallCube };
 
-// settings
-float SCR_WIDTH = 1366;
-float SCR_HEIGHT = 768;
-
-//scene
-bool mass[100][100][100];
-
-ObjectType objectType = smallCube;
-
-// camera
-Camera camera(glm::vec3(50.0f, 5.0f, 50.0f));
-float lastX = SCR_WIDTH / 2.0;
-float lastY = SCR_HEIGHT / 2.0;
-bool firstMouse = true;
-int elementsCount = 0;
-
-// timing
-float deltaTime = 0.0f;
-
-//shaders
-Shader shader_object = Shader();
-Shader shader_sky = Shader();
-
-struct TextMaterial {
-	glm::vec3 color;
-	float specular_intensity;
-	float specular_power;
-};
-struct Option {
-	bool isHasLights;
-	float some1;
-	bool isUseTexture;
-	float some2;
-};
-struct PointLight {
-	glm::vec3 position_ws;
-	float r;
-	glm::vec3 color;
-	float some1;
-};
-struct PointLightData {
-	int n;
-	float some1;
-	float some2;
-	float some3;
-	PointLight lights[2];
-};
-struct ModelMatrices {
-	glm::mat4x4 mvp_matrix;
-	glm::mat4x4 model_matrix;
-};
-
-SampleApp::SampleApp() : OGLAppFramework::OGLApplication(SCR_WIDTH, SCR_HEIGHT, "Game - 3D", 4u, 2u),
+SampleApp::SampleApp() : OGLAppFramework::OGLApplication(1366, 768, "Game - 3D", 4u, 2u), SCR_WIDTH(1366), SCR_HEIGHT(768),
 vbo_cube_handle(0u), index_buffer_handle(0u), vao_handle_sky(0u), vao_piramide_litle_handle(0u), vbo_piramide_litle_handle(0u),
 vao_cube_handle(0u), ubo_mvp_matrix_handle(0u), ubo_intensity_handle(0u), tex_handle(0u), vao_piramide_handle(0u),
 tex_so(0u), ubo_ambient_light(0u), tex_handle_sky(0u), index_buffer_handle_sky(0u), vbo_piramide_handle(0u), ubo_option(0u),
 ubo_point_light(0u), ubo_camera_position(0u), ubo_material(0u), vbo_handle_sky(0u), ubo_skybox(0u), tex_piramide_handle(0u),
-vbo_small_cube_handle(0u), vao_small_cube_handle(0u) {
+vbo_small_cube_handle(0u), vao_small_cube_handle(0u), shader_object(), shader_sky(), deltaTime(0u), elementsCount(0u),
+firstMouse(true), camera(glm::vec3(50.0f, 5.0f, 50.0f)), objectType(smallCube), directionObject(diagonalForward), 
+lastX(1366 / 2.0), lastY(768 / 2.0){
 }
 
 SampleApp::~SampleApp() {
@@ -159,11 +108,11 @@ bool SampleApp::init(void) {
 	gl::glEnable(gl::GL_DEPTH_TEST);
 
 	srand(time(0));
-	for (int x = 0; x < 5; x++)
-		for (int y = 0; y < 5; y++)
-			for (int z = 0; z < 5; z++) {
+	for (int x = 0; x < 15; x++)
+		for (int y = 0; y < 2; y++)
+			for (int z = 0; z < 15; z++) {
 				if ((y == 0) || rand() % 100 == 1) {
-					mass[x + 50][y][z + 50] = true;
+					mass[x + 40][y][z + 40] = true;
 					elementsCount++;
 				}
 			}
@@ -336,37 +285,92 @@ bool SampleApp::init(void) {
 
 bool SampleApp::frame(float delta_time) {
 	//std::cout << "FPS:" << 1/delta_time << std::endl;
-
-	deltaTime = delta_time * 1.1;
+	static float angle = 0.f;
+	static float x = 45.f;
+	static float z = 45.f;
+	angle += delta_time * 1.1;
+	deltaTime = delta_time;
 	camera.update(deltaTime, mass);
 
 	switch (objectType) {
 	case(smallCube):
-		// uaktywnienie pierwszego slotu tekstur
-		gl::glActiveTexture(gl::GL_TEXTURE0);
-		// zbindowanie tekstury do aktywnego slotu
-		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_handle);
+		useTexture(&tex_handle);
 		drawObjects(&vao_small_cube_handle, 36, true, true);
 		break;
 	case(cube):
+		useTexture(&tex_handle);
 		drawObjects(&vao_cube_handle, 36, true, true);
 		break;
 	case(piramide):
-		// uaktywnienie pierwszego slotu tekstur
-		gl::glActiveTexture(gl::GL_TEXTURE0);
-		// zbindowanie tekstury do aktywnego slotu
-		gl::glBindTexture(gl::GL_TEXTURE_2D, tex_piramide_handle);
+		useTexture(&tex_piramide_handle);
 		drawObjects(&vao_piramide_handle, 18, true, true);
 		break;
 	case(litlePiramide):
 		drawObjects(&vao_piramide_litle_handle, 18, false, false);
 		break;
 	}
-	
+
+	useTexture(&tex_piramide_handle);
+	srand(time(0));
+	switch (rand() % 10 + 1) {
+	case 1: 	
+		directionObject = diagonalForward;
+		break;
+	case 2:
+		directionObject = diagonalBack;
+		break;
+	case 3:
+		directionObject = forward;
+		break;
+	case 4:
+		directionObject = right;
+		break;
+	case 5:
+		directionObject = back;
+		break;
+	case 6:
+		directionObject = left;
+		break;
+	}
+	switch (directionObject) {
+	case forward:
+		x += 0.01;
+		break;
+	case back:
+		x -= 0.01;
+		break;
+	case left:
+		z -= 0.01;
+		break;
+	case right:
+		z += 0.01;
+		break;
+	case diagonalForward:
+		x += 0.01;
+		z += 0.01;
+		break;
+	case diagonalBack:
+		x -= 0.01;
+		z -= 0.01;
+		break;
+	}
+
+	drawObject(&vao_piramide_handle, 18, true, true, glm::vec3(x, 1.0f, z));
+	if ((int)camera.Position.x == (int)x && (int)camera.Position.y == 1 && (int)camera.Position.z == (int)z) {
+		std::cout << "You caught lava !!!" << std::endl;
+		camera.fall();
+	}
 	//skybox
 	drawSkybox();
 
 	return true;
+}
+
+void SampleApp::useTexture(gl::GLuint *id) {
+	// uaktywnienie pierwszego slotu tekstur
+	gl::glActiveTexture(gl::GL_TEXTURE0);
+	// zbindowanie tekstury do aktywnego slotu
+	gl::glBindTexture(gl::GL_TEXTURE_2D, *id);
 }
 
 void SampleApp::drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights, bool isUseTexture) {
@@ -402,6 +406,28 @@ void SampleApp::drawObjects(gl::GLuint *vao, gl::GLsizei size, bool isHasLights,
 
 	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
 	gl::glDrawElementsInstanced(gl::GL_TRIANGLES, size, gl::GL_UNSIGNED_SHORT, nullptr, elementsCount);
+	gl::glBindVertexArray(0);
+}
+
+void SampleApp::drawObject(gl::GLuint *vao, gl::GLsizei size, bool isHasLights, bool isUseTexture, const glm::vec3& translation) {
+	// ustawienie programu, ktory bedzie uzywany podczas rysowania
+	shader_object.use();
+	// zbindowanie VAO modelu, ktorego bedziemy renderowac
+	gl::glBindVertexArray(*vao);
+
+	ModelMatrices matrices = ModelMatrices();
+	matrices.model_matrix = translationMatrix(translation);
+	matrices.mvp_matrix = projection_matrix * camera.GetViewMatrix() * matrices.model_matrix;
+	Option option = Option();
+	option.isHasLights = isHasLights;
+	option.isUseTexture = isUseTexture;
+	shader_object.sendData(option, ubo_option);
+	if (isHasLights)
+		shader_object.sendData(camera.Position, ubo_camera_position);
+	shader_object.sendData(matrices, ubo_mvp_matrix_handle);
+
+	// rozpoczynamy rysowanie uzywajac ustawionego programu (shader-ow) i ustawionych buforow
+	gl::glDrawElements(gl::GL_TRIANGLES, size, gl::GL_UNSIGNED_SHORT, nullptr);
 	gl::glBindVertexArray(0);
 }
 

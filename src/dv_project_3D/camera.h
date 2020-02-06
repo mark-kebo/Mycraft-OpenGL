@@ -82,9 +82,13 @@ public:
 		if (direction == RIGHT)
 			if (!isNearWalls || direction != lastButtonPressed) {  dPosition += Right * velocity;};
 		if (direction == UP) {
-			if (onGround) { onGround = false; dPosition.y = 0.3; };
+			if (onGround) { fall(); };
 		}
 		lastButtonPressed = direction;
+	}
+
+	void fall() {
+		onGround = false; dPosition.y = 0.3;
 	}
 
 	void ProcessMouseMovement(float xoffset, float yoffset, gl::GLboolean constrainPitch = true)
