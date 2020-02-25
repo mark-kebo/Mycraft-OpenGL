@@ -1,7 +1,7 @@
-# OPENGL Minecraft clone-3D
+# OpenGL Mycraft 3D
 
-Use Button "P" for change object type
-------------------------------------------------
+"P" for change object type
+-------------------------------------
 
 Na projekt składa się opis projektu oraz aplikacja renderujące scenę 3D stworzona w C++ i OpenGL (GLSL), używając frameworka przedstawionego na zajęciach (z ewentualnymi modyfikacjami). Aplikacja powinna zostać napisana obiektowo z możliwe zminimalizowaną (najlepiej do 0) redundancją kodu.
 
